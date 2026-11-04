@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+  - package-ecosystem: opentofu
+    directories:
+      - /stacks/aws/bootstrap/state
+      - /stacks/aws/network/core
+      - /stacks/aws/storage/bucket
+      - /stacks/azure/network/core
+      - /stacks/azure/bootstrap/state
+      - /stacks/azure/storage/bucket
+      - /stacks/gcp/network/core
+      - /stacks/gcp/bootstrap/state
+      - /stacks/gcp/storage/bucket
+    schedule:
+      interval: weekly
+    groups:
+      providers:
+        patterns: ['*']

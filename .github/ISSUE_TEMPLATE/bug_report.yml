@@ -1,0 +1,17 @@
+name: Bug report
+description: Report a reproducible template or tooling issue
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Include the command, expected behavior, and actual behavior. Redact sensitive details.
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions and platform
+      description: CLI version, Python version, operating system, and affected example.
+    validations:
+      required: true

@@ -1,0 +1,21 @@
+# Generated plans, state, backend metadata, and provider downloads can contain secrets.
+.infra/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.credentials.json
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+.idea/
+.vscode/
+# Commit provider lock files under executable stacks.
