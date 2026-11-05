@@ -7,10 +7,16 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import zipfile
 
 
 class QualityError(Exception):
     """A failed or incomplete quality check."""
+
+
+# Trivy drops suppressed findings from its report, so they must be rejected before scanning.
+SUPPRESSION = re.compile(rb"(?i)(?:trivy|tfsec):ignore")
+CONFIGURATION = (".tf", ".tf.json")
 
 
 def execute(arguments, root: Path, *, env=None, capture=False):
@@ -78,7 +84,30 @@ def inspect_report(report: str, expected_type: str) -> int:
         raise QualityError("Security scan was incomplete or unrecognized; refusing to pass") from error
 
 
+def reject_suppressions(root: Path, plan: Path | None):
+    if plan:
+        try:
+            with zipfile.ZipFile(plan) as archive:
+                suppressed = any(SUPPRESSION.search(archive.read(name))
+                                 for name in archive.namelist() if name.endswith(CONFIGURATION))
+        except zipfile.BadZipFile as error:
+            raise QualityError("Saved plan is unrecognized; refusing to pass") from error
+        if suppressed:
+            raise QualityError("Saved plan configuration contains inline scanner suppressions")
+        return
+    suppressed = []
+    for directory, subdirectories, files in os.walk(root):
+        subdirectories[:] = [name for name in subdirectories if name not in {".git", ".infra"}]
+        for name in files:
+            path = Path(directory) / name
+            if name.endswith(CONFIGURATION) and SUPPRESSION.search(path.read_bytes()):
+                suppressed.append(path.relative_to(root).as_posix())
+    if suppressed:
+        raise QualityError("Inline scanner suppressions are not allowed: " + ", ".join(sorted(suppressed)))
+
+
 def security(root: Path, stack: Path, variables: Path, *, plan: Path | None = None):
+    reject_suppressions(root, plan)
     env = {key: value for key, value in os.environ.items() if not key.startswith("TRIVY_")}
     version = require_version("trivy", root, env)
     kind = "terraformplan-snapshot" if plan else "terraform"

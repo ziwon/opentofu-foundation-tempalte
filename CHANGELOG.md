@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Security scans reject inline `trivy:ignore` and `tfsec:ignore` comments in source
+  and saved-plan configuration. Trivy otherwise drops suppressed findings silently.
 - Native OpenTofu roots for all 30 live deployments. Ordinary init, plan, apply,
   output, and state operations no longer require repository Python.
 - Shared resources moved into `modules/<cloud>/<group>/<stack>`. Roots retain
