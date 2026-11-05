@@ -9,15 +9,42 @@ updates:
         patterns: ['*']
   - package-ecosystem: opentofu
     directories:
-      - /stacks/aws/bootstrap/state
-      - /stacks/aws/network/core
-      - /stacks/aws/storage/bucket
-      - /stacks/azure/network/core
-      - /stacks/azure/bootstrap/state
-      - /stacks/azure/storage/bucket
-      - /stacks/gcp/network/core
-      - /stacks/gcp/bootstrap/state
-      - /stacks/gcp/storage/bucket
+      - /live/dev/aws/bootstrap/state
+      - /live/dev/aws/network/core
+      - /live/dev/aws/storage/bucket
+      - /live/dev/azure/bootstrap/state
+      - /live/dev/azure/network/core
+      - /live/dev/azure/storage/bucket
+      - /live/dev/gcp/bootstrap/state
+      - /live/dev/gcp/network/core
+      - /live/dev/gcp/storage/bucket
+      - /live/prod/aws/bootstrap/state
+      - /live/prod/aws/network/core
+      - /live/prod/aws/storage/bucket
+      - /live/prod/azure/bootstrap/state
+      - /live/prod/azure/network/core
+      - /live/prod/azure/storage/bucket
+      - /live/prod/gcp/bootstrap/state
+      - /live/prod/gcp/network/core
+      - /live/prod/gcp/storage/bucket
+      - /live/stage/aws/bootstrap/state
+      - /live/stage/aws/network/core
+      - /live/stage/aws/storage/bucket
+      - /live/stage/azure/bootstrap/state
+      - /live/stage/azure/network/core
+      - /live/stage/azure/storage/bucket
+      - /live/stage/gcp/bootstrap/state
+      - /live/stage/gcp/network/core
+      - /live/stage/gcp/storage/bucket
+      - /modules/aws/bootstrap/state
+      - /modules/aws/network/core
+      - /modules/aws/storage/bucket
+      - /modules/azure/bootstrap/state
+      - /modules/azure/network/core
+      - /modules/azure/storage/bucket
+      - /modules/gcp/bootstrap/state
+      - /modules/gcp/network/core
+      - /modules/gcp/storage/bucket
     schedule:
       interval: weekly
     groups:

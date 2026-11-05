@@ -1,28 +1,27 @@
 # Publish your template
 
-This checkout can be prepared locally without creating a remote repository.
-Before making a fork public:
+Prepare the checkout locally before creating a public repository.
 
-1. Read the MIT license and set the repository name, description, maintainers,
-   and support/security reporting channels for your project.
-2. Inspect every tracked file and the Git history for credentials, state, plans,
-   account-specific details, internal domains, and proprietary material. Run
-   Gitleaks on both the directory and history. A clean secret scan is only one
-   part of that review.
-3. Run the documented checks and local smoke test with both engines. Review
-   any provider-version or lock-file changes.
-4. Create a public repository, push the reviewed files, and enable GitHub's
+1. Review the MIT license and set the repository name, description, maintainers,
+   and private security reporting channel.
+2. Inspect tracked files and history for credentials, state, plans, account-specific
+   values, internal domains, and proprietary material. Run both Gitleaks scans.
+3. Run the [documented checks](verification.md), local lifecycle, and migration fixtures.
+   Review provider constraints and root lock files.
+4. Create the public repository and push the reviewed files. Enable GitHub's
    **Template repository** setting if users should generate independent copies.
-5. Enable private vulnerability reporting and configure repository rules to
-   require `check (tofu)`, `check (terraform)`, and `secrets` when supported by
-   your GitHub plan. Disable force pushes to the default branch.
-6. Run hosted CI, review the results, then tag the first release. The included
-   workflow definitions are not evidence that a hosted run has happened.
+5. Enable private vulnerability reporting and branch protection. Require the
+   OpenTofu checks and secret scan. Disable force pushes to the default branch.
+6. Run hosted CI and review its results before tagging a release. A checked-in
+   workflow is not evidence that a hosted run passed.
 
-Examples contain placeholder account/project IDs. They deliberately do not contain
-working credentials, a deployment identity, or automatically provisioned remote
-state. Keep the local `.infra/` directory out of releases and repository history.
+Example account and project IDs are placeholders. They are not credentials or
+a deployment identity. Keep `.infra/`, native working directories, state, and
+saved plans out of releases and repository history.
 
-Do not infer cloud deployment readiness from mock tests. An organization adopting
-this template should perform a sandbox deployment and recovery exercise with its
-own identities and policies before enabling production changes.
+Read [security policy](../SECURITY.md) before enabling cloud credentials. Local
+native commands do not enforce the previous repository approval or fingerprint
+checks. Trusted automation must enforce scans and approvals.
+
+Mock tests do not prove cloud deployment readiness. Exercise sandbox deployment,
+migration, and recovery with your own identities before enabling production changes.

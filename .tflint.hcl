@@ -3,7 +3,6 @@ plugin "terraform" {
   preset  = "recommended"
 }
 
-# The runner enables only the selected deployment's cloud plugin.
 plugin "aws" {
   enabled = false
   version = "0.50.0"

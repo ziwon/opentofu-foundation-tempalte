@@ -18,4 +18,5 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
-# Commit provider lock files under executable stacks.
+# Commit provider lock files under executable live roots.
+/modules/**/.terraform.lock.hcl

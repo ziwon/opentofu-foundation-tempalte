@@ -1,0 +1,26 @@
+repos:
+  - id: github.com/REPLACE_OWNER/REPLACE_REPOSITORY
+    branch: /^main$/
+    apply_requirements: [approved, mergeable, undiverged]
+    allowed_overrides: []
+    allowed_workflows: [foundation]
+    allow_custom_workflows: false
+    workflow: foundation
+    autodiscover:
+      mode: disabled
+workflows:
+  foundation:
+    plan:
+      steps:
+        - run: test -z "$COMMENT_ARGS"
+        - init
+        - run: python3 ../../../../../tools/quality.py lint .
+        - run: python3 ../../../../../tools/quality.py source .
+        - plan
+        - run: python3 ../../../../../tools/quality.py plan . "$PLANFILE"
+    apply:
+      steps:
+        - run: test -z "$COMMENT_ARGS"
+        - run: python3 ../../../../../tools/quality.py source .
+        - run: python3 ../../../../../tools/quality.py plan . "$PLANFILE"
+        - apply

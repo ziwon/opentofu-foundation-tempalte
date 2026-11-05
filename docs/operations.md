@@ -1,120 +1,116 @@
-# Operations
+# Operate a deployment
 
-## Normal change
+## Plan and apply a normal change
 
-Edit the stack or its live inputs, run `test`, create a plan, review it, and apply
-that saved plan. A successful plan with changes is treated as success, including
-the engine's detailed exit code 2. Ordinary commands use readonly provider locks.
-
-```sh
-python3 tools/infra.py lint dev/aws/network/core
-python3 tools/infra.py security dev/aws/network/core
-python3 tools/infra.py test dev/aws/network/core
-python3 tools/infra.py plan dev/aws/network/core
-python3 tools/infra.py apply dev/aws/network/core
-```
-
-The apply prompt requires the exact deployment name. Use `--yes` only when an
-external automation process has approved that plan. The native engine also
-checks state freshness; the runner's source checks do not replace native locking.
-Both plan and apply scan the saved binary plan with Trivy. A security failure blocks
-application, including with `--yes`; see [quality checks](quality.md).
-
-## Inspect state without changing it
+Edit a root's inputs or its composition module. Run the relevant checks, initialize
+that root, and save a plan. The following commands run from the repository root:
 
 ```sh
-python3 tools/infra.py state-list dev/local/foundation/catalog
-python3 tools/infra.py state-show dev/local/foundation/catalog terraform_data.catalog
+tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
+tofu -chdir=live/dev/aws/network/core test
+tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
+tofu -chdir=live/dev/aws/network/core show plan.tfplan
 ```
 
-Queries require the selected deployment to be initialized and use its isolated
-working directory and native backend. Resource addresses are passed as one argument;
-quote addresses containing map keys, for example `'aws_instance.worker["blue"]'`.
-`state-show` can print sensitive attributes. Use an authorized terminal and do not
-redirect the output into committed files or public logs. State mutation commands
-are intentionally outside this interface.
-
-## A failed plan or apply
-
-A failed plan removes any prior saved plan, so it cannot accidentally be applied.
-After an apply attempt, the plan is discarded even if the command failed. Inspect
-the engine's output and actual state, then plan again. Partial applies may have
-created or changed resources. Do not delete state to retry.
-
-For stale-plan errors, run `plan` again. The runner checks inputs, backend,
-engine/version, provider lock, stack code, local module code, and plan bytes.
-Quality-tool/policy changes also invalidate plans; documentation-only changes do not.
-
-The AWS storage example now creates a customer-managed KMS key. For an existing
-deployment, review permissions and charges; changing default encryption affects new
-objects, not existing objects. The Azure storage example now denies networks outside
-its allowlist; configure operator and workload access before applying to avoid 403s.
-
-## Delete a deployment
+Review the complete plan and obtain your deployment approval before applying it:
 
 ```sh
-python3 tools/infra.py plan dev/local/foundation/catalog --destroy
-python3 tools/infra.py apply dev/local/foundation/catalog
+tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 ```
 
-Review the destruction plan before applying. Storage examples deliberately
-retain data, protect storage/key resources with `prevent_destroy`, or refuse
-deletion of nonempty buckets. An approved data-retention
-decision is separate from deleting an infrastructure deployment. Do not delete
-the live directory until the deployment has been retired and its state retained
-according to your recovery policy.
+Applying a saved plan has no confirmation prompt. Native commands do not enforce
+the former repository fingerprints, receipts, exact-name prompt, or automatic
+security scans. Use [trusted automation](atlantis.md) when those scans and approvals
+must be enforced. The [quality helper](quality.md) can also scan a local source tree
+and saved plan explicitly.
 
-## Provider updates
+Use the default workspace. Keep credentials in native cloud authentication, and
+avoid hidden variable or CLI overrides when working from reviewed inputs.
+Initialization with `-lockfile=readonly` preserves committed provider selections.
+If you request `-detailed-exitcode` for planning, exit code 2 means changes are present.
 
-Update the version constraint in the stack's `versions.tf`, then resolve and
-review the lock file explicitly:
+## Inspect outputs and state
 
 ```sh
-python3 tools/infra.py lock dev/aws/network/core --upgrade
-python3 tools/infra.py test dev/aws/network/core
-python3 tools/infra.py --engine terraform test dev/aws/network/core
+tofu -chdir=live/dev/local/foundation/catalog output
+tofu -chdir=live/dev/local/foundation/catalog state list
+tofu -chdir=live/dev/local/foundation/catalog state show module.stack.terraform_data.catalog
 ```
 
-Commit both version and lock changes. Inspect upstream major-version migration
-notes and any externally downloaded artifacts; a module version and its runtime
-artifacts sometimes need to change together. Mock tests do not prove compatibility
-with existing state, so review a live plan before deployment.
+Initialize the root before reading its state. Quote addresses with map keys,
+for example `'module.stack.aws_instance.worker["blue"]'`.
+State and JSON output can expose sensitive attributes. Use an authorized terminal
+and keep the output out of public logs and committed files.
 
-Provider sources explicitly use `registry.opentofu.org` so both engines install
-the same package addresses and verify the same lock entries. Changing registries
-is a provider/state migration; do not casually rewrite lock-file addresses.
+## Recover from a failed command
 
-## Backend or engine migration
+Inspect OpenTofu's output and actual state before retrying. A partial apply may
+have changed resources. Do not delete state to retry.
 
-Initialization does not silently reconfigure or migrate state. If backend data
-changes, native `init` will request a migration/reconfiguration decision.
+Native commands do not remove old saved plans after failed plans or apply attempts.
+Discard obsolete plan files and create a fresh plan after any failure, source
+change, input change, provider update, or policy change. Native state checks do not
+bind a saved plan to the current source checkout.
 
-1. Back up the existing state through a secure, authorized mechanism.
-2. Stop other operations on that deployment and verify both old/new identities.
-3. Generate the new backend configuration with the runner's `init` command; it
-   may stop when it detects the changed backend.
-4. Follow the selected engine's documented `init -migrate-state` procedure using
-   the deployment's `.infra/<engine>/<deployment>/data` as `TF_DATA_DIR` and the
-   generated `.infra/<engine>/<deployment>/backend.generated.hcl`.
-5. Run the runner's `init` again, then inspect a fresh plan and verify resources.
+## Retire a deployment
 
-Do not use `-reconfigure` as a substitute for moving existing state. A new empty
-backend can make existing resources appear unmanaged. Switching engines also
-requires reviewing state-format/provider compatibility; the CI compatibility
-matrix tests code execution, not arbitrary cross-engine state migrations.
+The following example affects only the local catalog:
 
-See [OpenTofu initialization](https://opentofu.org/docs/cli/commands/init/) and
-[Terraform initialization](https://developer.hashicorp.com/terraform/cli/commands/init).
+```sh
+tofu -chdir=live/dev/local/foundation/catalog plan -destroy -out=destroy.tfplan
+tofu -chdir=live/dev/local/foundation/catalog show destroy.tfplan
+tofu -chdir=live/dev/local/foundation/catalog apply destroy.tfplan
+```
 
-## Deployment automation
+Review destruction separately from ordinary changes. Storage examples retain data,
+use `prevent_destroy`, or refuse nonempty bucket deletion. Keep the live directory
+and state until retirement and recovery requirements are satisfied. Bootstrap
+retirement requires a separate review after all consumers move to another backend.
 
-CI is intentionally credential-free. To add GitHub Actions deployments, use a
-trusted workflow, cloud OIDC, environment approvals, deployment-scoped permissions,
-and one concurrency group per deployment. Treat plan artifacts as confidential:
-limit access/retention and bind approval to the reviewed commit and plan checksum.
-Never run untrusted pull-request code with deployment credentials.
+## Update providers
 
-Atlantis or another orchestrator can call the same runner with an explicit
-deployment ID. Give each concurrent deployment isolated working data and retain
-its plan files until application. Decide approval and apply requirements in the
-trusted server configuration, and keep deployment access out of fork checks.
+Update the required provider constraint in the composition and its roots together.
+Resolve and review each affected root's lock file:
+
+```sh
+tofu -chdir=live/dev/aws/network/core init -backend=false -upgrade
+tofu -chdir=live/dev/aws/network/core providers lock
+tofu -chdir=live/dev/aws/network/core test
+```
+
+Use a disposable checkout or separate `TF_DATA_DIR` for backend-free checks so they
+do not disturb an operational root's initialized backend. Commit version and lock
+changes together. Review provider migration notes and a fresh plan against existing state.
+Mock tests do not prove live-state compatibility.
+
+Provider sources explicitly use `registry.opentofu.org`. Preserve these identities
+when moving code. Changing a registry address is a separate provider/state migration.
+OpenTofu is the supported CLI.
+
+## Change a backend
+
+A layout migration that preserves storage identity follows the
+[native-root migration guide](migration.md). Moving state to different storage is
+a separate operation.
+
+1. Stop concurrent operations and obtain authorization for the state migration.
+2. Back up the current state securely and verify the old and new storage identities.
+3. Retain the initialized root's backend metadata while editing `backend.tf`.
+4. Follow OpenTofu's `init -migrate-state` procedure and review every migration prompt.
+5. Verify the destination state and review a fresh plan before resuming deployments.
+
+Do not use `-reconfigure` as a substitute for copying state. Pointing at an empty
+backend can make existing resources appear unmanaged. See
+[OpenTofu initialization](https://opentofu.org/docs/cli/commands/init/).
+
+## Configure deployment automation
+
+The supplied CI is credential-free. Deployment workflows need trusted source,
+short-lived cloud identity, explicit approvals, deployment-scoped permissions,
+and one concurrency boundary per state. Bind approval to the reviewed commit and
+plan artifact. Treat saved plans as confidential and limit their access and retention.
+
+The [Atlantis integration](atlantis.md) keeps approvals in server-owned configuration.
+It uses native init, plan, and apply with source and saved-plan checks. Keep fork
+PRs disabled and retain the trusted repository and author boundary. Do not execute
+untrusted PR code with deployment credentials.

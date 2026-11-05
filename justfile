@@ -3,74 +3,41 @@ set positional-arguments
 default:
     @just --list
 
-list:
-    @python3 tools/infra.py list
-
-show deployment:
-    @python3 tools/infra.py show "$1"
-
 init deployment:
-    @python3 tools/infra.py init "$1"
+    tofu -chdir="live/$1" init
 
 plan deployment:
-    @python3 tools/infra.py plan "$1"
+    tofu -chdir="live/$1" plan -out=plan.tfplan
 
 destroy-plan deployment:
-    @python3 tools/infra.py plan "$1" --destroy
+    tofu -chdir="live/$1" plan -destroy -out=plan.tfplan
 
 apply deployment:
-    @python3 tools/infra.py apply "$1"
+    tofu -chdir="live/$1" apply plan.tfplan
 
 output deployment:
-    @python3 tools/infra.py output "$1"
+    tofu -chdir="live/$1" output
 
 state-list deployment:
-    @python3 tools/infra.py state-list "$1"
+    tofu -chdir="live/$1" state list
 
 state-show deployment address:
-    @python3 tools/infra.py state-show "$1" "$2"
-
-lint deployment:
-    @python3 tools/infra.py lint "$1"
-
-security deployment:
-    @python3 tools/infra.py security "$1"
-
-security-plan deployment:
-    @python3 tools/infra.py security "$1" --plan
-
-bootstrap-init deployment:
-    @python3 tools/infra.py bootstrap init "$1"
-
-bootstrap-plan deployment:
-    @python3 tools/infra.py bootstrap plan "$1"
-
-bootstrap-apply deployment:
-    @python3 tools/infra.py bootstrap apply "$1"
-
-bootstrap-output deployment:
-    @python3 tools/infra.py bootstrap output "$1"
+    tofu -chdir="live/$1" state show "$2"
 
 validate deployment:
-    @python3 tools/infra.py validate "$1"
+    tofu -chdir="live/$1" validate
 
 test deployment:
-    @python3 tools/infra.py test "$1"
-
-new deployment source:
-    @python3 tools/infra.py new "$1" --from "$2"
+    tofu -chdir="live/$1" test
 
 lock deployment:
-    @python3 tools/infra.py lock "$1"
+    tofu -chdir="live/$1" providers lock -platform=linux_amd64 -platform=darwin_arm64
 
 fmt:
-    @python3 tools/infra.py fmt
+    tofu fmt -recursive
 
 check:
-    @python3 tools/infra.py check
-
-smoke:
-    @python3 tools/smoke.py
+    python3 tools/check.py
 
 secrets:
-    @gitleaks dir . --redact --no-banner
+    gitleaks dir . --redact --no-banner

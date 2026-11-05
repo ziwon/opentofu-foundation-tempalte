@@ -1,10 +1,12 @@
 """Run pinned quality tools; keep raw security reports in memory only."""
 
+import argparse
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 
 
 class QualityError(Exception):
@@ -92,3 +94,31 @@ def security(root: Path, stack: Path, variables: Path, *, plan: Path | None = No
     report = execute(arguments, root, env=env, capture=True).stdout
     checks = inspect_report(report, kind)
     print(f"Security passed ({kind}, {checks} reported checks): {variables.parent.relative_to(root / 'live')}", flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=["source", "plan", "lint"])
+    parser.add_argument("directory", type=Path)
+    parser.add_argument("planfile", type=Path, nargs="?")
+    args = parser.parse_args()
+    root = Path(__file__).resolve().parents[1]
+    directory = args.directory.resolve()
+    if not directory.is_relative_to(root / "live") or len(directory.relative_to(root / "live").parts) != 4:
+        parser.error("directory must be a native live deployment root")
+    variables = directory / "terraform.tfvars.json"
+    cloud = directory.relative_to(root / "live").parts[1]
+    if (args.action == "plan") != (args.planfile is not None):
+        parser.error("plan requires a saved plan path; source and lint do not accept one")
+    if args.action == "lint":
+        lint(root, directory, variables, cloud)
+    else:
+        security(root, directory, variables, plan=args.planfile.resolve() if args.planfile else None)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (QualityError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        raise SystemExit(1)

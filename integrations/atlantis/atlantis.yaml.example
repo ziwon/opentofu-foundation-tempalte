@@ -1,0 +1,407 @@
+{
+  "version": 3,
+  "autodiscover": {
+    "mode": "disabled"
+  },
+  "automerge": false,
+  "parallel_plan": false,
+  "parallel_apply": false,
+  "projects": [
+    {
+      "name": "dev/aws/network/core",
+      "dir": "live/dev/aws/network/core",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/aws/network/core/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "dev/aws/storage/bucket",
+      "dir": "live/dev/aws/storage/bucket",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/aws/storage/bucket/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "dev/azure/network/core",
+      "dir": "live/dev/azure/network/core",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/azure/network/core/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "dev/azure/storage/bucket",
+      "dir": "live/dev/azure/storage/bucket",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/azure/storage/bucket/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "dev/gcp/network/core",
+      "dir": "live/dev/gcp/network/core",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/gcp/network/core/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "dev/gcp/storage/bucket",
+      "dir": "live/dev/gcp/storage/bucket",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/gcp/storage/bucket/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "prod/aws/network/core",
+      "dir": "live/prod/aws/network/core",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/aws/network/core/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "prod/aws/storage/bucket",
+      "dir": "live/prod/aws/storage/bucket",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/aws/storage/bucket/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "prod/azure/network/core",
+      "dir": "live/prod/azure/network/core",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/azure/network/core/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "prod/azure/storage/bucket",
+      "dir": "live/prod/azure/storage/bucket",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/azure/storage/bucket/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "prod/gcp/network/core",
+      "dir": "live/prod/gcp/network/core",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/gcp/network/core/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "prod/gcp/storage/bucket",
+      "dir": "live/prod/gcp/storage/bucket",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/gcp/storage/bucket/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "stage/aws/network/core",
+      "dir": "live/stage/aws/network/core",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/aws/network/core/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "stage/aws/storage/bucket",
+      "dir": "live/stage/aws/storage/bucket",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/aws/storage/bucket/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "stage/azure/network/core",
+      "dir": "live/stage/azure/network/core",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/azure/network/core/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "stage/azure/storage/bucket",
+      "dir": "live/stage/azure/storage/bucket",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/azure/storage/bucket/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "stage/gcp/network/core",
+      "dir": "live/stage/gcp/network/core",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/gcp/network/core/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "stage/gcp/storage/bucket",
+      "dir": "live/stage/gcp/storage/bucket",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tf.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/gcp/storage/bucket/**/*.tf",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    }
+  ]
+}

@@ -2,8 +2,8 @@
 
 The committed values are examples, not working account credentials. Configure
 each environment explicitly. Create remote-state storage separately from these
-application stacks so deleting an application cannot delete its own state.
-The [bootstrap stacks](bootstrap.md) provide an explicit, reviewed way to create
+workload roots so deleting an application cannot delete its own state.
+The [bootstrap roots](bootstrap.md) provide an explicit, reviewed way to create
 that storage for AWS, Azure, and GCP.
 
 ## State storage checklist
@@ -11,11 +11,12 @@ that storage for AWS, Azure, and GCP.
 Use private storage with encryption, versioning/retention, and least-privilege
 access. Keep a recovery path independent of the workload being managed. Separate
 storage and identities across trust boundaries. Never put passwords, access keys,
-service-account JSON, tokens, SAS URLs, or encryption keys in `backend.json`.
+service-account JSON, tokens, SAS URLs, or encryption keys in `backend.tf`.
 
-The runner derives each key/prefix; do not set `key`, `prefix`, or `path` yourself.
-`init` renders non-secret values to an ignored file and lets the native backend
-authenticate. It refuses unchanged `REPLACE_ME` state-storage placeholders.
+Each root declares its complete backend in `backend.tf`, including an explicit
+key, prefix, or local path. Preserve those values for an existing deployment.
+Replace storage placeholders before initialization. Native `tofu init` connects
+to that backend through its normal authentication mechanism.
 
 ## AWS
 
@@ -23,16 +24,16 @@ authenticate. It refuses unchanged `REPLACE_ME` state-storage placeholders.
    versioning, default encryption, public-access blocking, and a TLS-only policy.
 2. Grant the operator access to that bucket and deployment prefix. S3 locking
    additionally needs `GetObject`, `PutObject`, and `DeleteObject` on `.tflock`
-   objects. Consult the [backend permission examples](https://developer.hashicorp.com/terraform/language/backend/s3).
+   objects. Consult the [backend permission examples](https://opentofu.org/docs/language/settings/backends/s3/).
 3. Configure AWS CLI SSO or a role-based credential chain. For CI, prefer OIDC
    with a repository/environment-scoped trust policy.
 4. Set `aws_account_id` and `region` in the deployment's `terraform.tfvars.json`.
-   Set the backend bucket, region, and `allowed_account_ids` in `backend.json`.
+   Set the backend bucket, region, and `allowed_account_ids` in `backend.tf`.
 
 ```sh
 aws sso login --profile your-profile
-AWS_PROFILE=your-profile python3 tools/infra.py init dev/aws/network/core
-AWS_PROFILE=your-profile python3 tools/infra.py plan dev/aws/network/core
+AWS_PROFILE=your-profile tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
+AWS_PROFILE=your-profile tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
 ```
 
 The AWS provider checks `allowed_account_ids` independently of the backend's
@@ -57,17 +58,17 @@ deletion, but that is not a backup or retention policy.
    scope, plus any control-plane read permissions needed for endpoint discovery.
    Configure Microsoft Entra authentication rather than account keys.
 4. Set `subscription_id` and `location` in `terraform.tfvars.json`. Set the state
-   resource group, storage account, container, and state subscription in `backend.json`.
+   resource group, storage account, container, and state subscription in `backend.tf`.
 
 ```sh
 az login
 az account set --subscription YOUR_SUBSCRIPTION_ID
-python3 tools/infra.py init dev/azure/network/core
-python3 tools/infra.py plan dev/azure/network/core
+tofu -chdir=live/dev/azure/network/core init -lockfile=readonly
+tofu -chdir=live/dev/azure/network/core plan -out=plan.tfplan
 ```
 
 For automation, use workload identity federation. Consult the
-[Azure backend authentication modes](https://developer.hashicorp.com/terraform/language/backend/azurerm)
+[Azure backend authentication modes](https://opentofu.org/docs/language/settings/backends/azurerm/)
 and [provider documentation](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs).
 Role assignments can take time to propagate.
 
@@ -85,18 +86,18 @@ the deployment name and a subscription hash to reduce global-name collisions.
 1. Enable the APIs needed by the examples and create a private, versioned GCS
    state bucket. Enforce uniform bucket-level access and public-access prevention.
 2. Grant the operator appropriate state object permissions and the permissions
-   for the resources in the selected stack. Use service-account impersonation
+   for the resources in the selected root. Use service-account impersonation
    or workload identity federation for automation.
 3. Set `project_id` and `region` in `terraform.tfvars.json`, and the state bucket
-   in `backend.json`. A separate state project is supported.
+   in `backend.tf`. A separate state project is supported.
 
 ```sh
 gcloud auth application-default login
-python3 tools/infra.py init dev/gcp/network/core
-python3 tools/infra.py plan dev/gcp/network/core
+tofu -chdir=live/dev/gcp/network/core init -lockfile=readonly
+tofu -chdir=live/dev/gcp/network/core plan -out=plan.tfplan
 ```
 
-See [GCS backend authentication](https://developer.hashicorp.com/terraform/language/backend/gcs)
+See [GCS backend authentication](https://opentofu.org/docs/language/settings/backends/gcs/)
 for impersonation and federated credentials. Do not commit downloaded service-account keys.
 
 The network has no automatic subnets, enables private access to Google APIs,
@@ -116,3 +117,7 @@ The `prod` examples demonstrate data separation, not production certification.
 Before rollout, review identity boundaries, availability, private connectivity,
 observability, retention, backup recovery, and deletion permissions against your
 actual requirements. No cloud deployment is performed by repository setup or CI.
+
+Native local commands do not automatically scan or approve plans. Use the explicit
+[quality checks](quality.md) and your approved deployment process before applying.
+For an existing shared-root deployment, follow [migration](migration.md) first.

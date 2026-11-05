@@ -4,7 +4,7 @@ Describe the concrete problem and resulting behavior.
 
 ## Verification
 
-- [ ] Checks pass with OpenTofu and Terraform.
+- [ ] Checks pass with OpenTofu.
 - [ ] Relevant mock tests or local smoke tests pass.
 - [ ] No credentials, state, or plans are included.
 
