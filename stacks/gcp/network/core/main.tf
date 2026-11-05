@@ -1,17 +1,10 @@
-module "naming" {
-  source      = "../../../../modules/naming"
-  namespace   = var.namespace
-  name        = var.name
-  environment = var.environment
-}
-
 resource "google_compute_network" "this" {
-  name                    = module.naming.id
+  name                    = module.context.id
   auto_create_subnetworks = false
   routing_mode            = "REGIONAL"
 }
 resource "google_compute_subnetwork" "private" {
-  name                     = "${module.naming.id}-private"
+  name                     = "${module.context.id}-private"
   network                  = google_compute_network.this.id
   region                   = var.region
   ip_cidr_range            = var.subnet_cidr
@@ -23,7 +16,7 @@ resource "google_compute_subnetwork" "private" {
   }
 }
 resource "google_compute_firewall" "deny_ingress" {
-  name          = "${module.naming.id}-deny-ingress"
+  name          = "${module.context.id}-deny-ingress"
   network       = google_compute_network.this.name
   direction     = "INGRESS"
   priority      = 65534

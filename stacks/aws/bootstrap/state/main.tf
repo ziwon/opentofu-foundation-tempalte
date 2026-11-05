@@ -1,12 +1,5 @@
-module "naming" {
-  source      = "../../../../modules/naming"
-  namespace   = var.namespace
-  name        = var.name
-  environment = var.environment
-}
-
 resource "aws_s3_bucket" "this" {
-  bucket        = "${module.naming.id}-${var.aws_account_id}"
+  bucket        = "${module.context.id}-${var.aws_account_id}"
   force_destroy = false
   lifecycle { prevent_destroy = true }
 }
@@ -37,7 +30,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 }
 
 resource "aws_kms_key" "state" {
-  description             = "Encrypt infrastructure state for ${module.naming.id}"
+  description             = "Encrypt infrastructure state for ${module.context.id}"
   enable_key_rotation     = true
   deletion_window_in_days = 30
   lifecycle { prevent_destroy = true }

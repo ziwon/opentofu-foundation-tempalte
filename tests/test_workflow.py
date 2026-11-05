@@ -101,7 +101,7 @@ class WorkflowTests(unittest.TestCase):
     @patch.object(Runner, "version", return_value="1.12.5")
     def test_saved_plan_rejects_changed_shared_module(self, _version):
         runner = self.receipt()
-        with (self.root / "modules/naming/main.tf").open("a") as stream:
+        with (self.root / "modules/context/main.tf").open("a") as stream:
             stream.write('\noutput "new_output" { value = "new" }\n')
         with self.assertRaises(UserError):
             runner.verify_plan()

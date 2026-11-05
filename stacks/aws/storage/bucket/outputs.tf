@@ -4,5 +4,5 @@ output "resource_id" {
 }
 output "deployment_name" {
   description = "Stable resource name for this deployment."
-  value       = module.naming.id
+  value       = module.context.id
 }

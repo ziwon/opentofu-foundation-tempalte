@@ -83,6 +83,22 @@ TFLint는 언어·클라우드 규칙을 검사하고, Trivy는 코드와 저장
 상태 조회 출력에는 민감한 값이 있을 수 있으므로 공개 로그에 남기지 마세요.
 [검사 범위와 예외 처리](docs/quality.md)를 참고하세요.
 
+## 리소스 이름과 태그 통일
+
+각 스택의 `context.tf`에서 공통 모듈을 호출하고, 리소스에서 다음 출력을 사용합니다.
+
+```hcl
+name = module.context.id
+tags = module.context.tags
+```
+
+이름은 `<namespace>-<name>-<environment>` 형식입니다. `live/`의 입력 파일에
+`"tags": {"owner": "platform", "cost_center": "research"}`처럼 추가 태그를 지정할 수 있습니다.
+기본 태그인 `project`, `environment`, `managed_by`는 덮어쓸 수 없습니다.
+AWS는 provider의 기본 태그, Azure는 리소스 태그, GCP는 labels로 연결합니다.
+AWS의 리소스별 `Name`과 클라우드별 이름 제약도 유지합니다.
+[사용 예제와 기존 naming 모듈 이관 안내](docs/context.md)를 참고하세요.
+
 ## 환경과 스택 추가
 
 ```sh

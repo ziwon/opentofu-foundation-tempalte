@@ -1,18 +1,11 @@
-module "naming" {
-  source      = "../../../../modules/naming"
-  namespace   = var.namespace
-  name        = var.name
-  environment = var.environment
-}
-
 resource "azurerm_resource_group" "this" {
-  name     = "${module.naming.id}-rg"
+  name     = "${module.context.id}-rg"
   location = var.location
-  tags     = module.naming.tags
+  tags     = module.context.tags
 }
 resource "azurerm_storage_account" "this" {
   lifecycle { prevent_destroy = true }
-  name                            = "${substr(replace(module.naming.id, "-", ""), 0, 18)}${substr(sha1(var.subscription_id), 0, 6)}"
+  name                            = "${substr(replace(module.context.id, "-", ""), 0, 18)}${substr(sha1(var.subscription_id), 0, 6)}"
   resource_group_name             = azurerm_resource_group.this.name
   location                        = azurerm_resource_group.this.location
   account_tier                    = "Standard"
@@ -22,7 +15,7 @@ resource "azurerm_storage_account" "this" {
   allow_nested_items_to_be_public = false
   shared_access_key_enabled       = false
   default_to_oauth_authentication = true
-  tags                            = module.naming.tags
+  tags                            = module.context.tags
   network_rules {
     default_action             = "Deny"
     bypass                     = ["AzureServices"]

@@ -37,3 +37,10 @@ variable "project_id" {
     error_message = "Provide a valid GCP project ID."
   }
 }
+
+variable "tags" {
+  description = "Additional portable tags or labels; standard context tags are reserved."
+  type        = map(string)
+  default     = {}
+  nullable    = false
+}

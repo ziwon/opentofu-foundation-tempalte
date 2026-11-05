@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Stack-level `context.tf` with shared `module.context.id` and `module.context.tags` outputs.
+- Optional portable tags with reserved standard keys, preserving existing resource names.
 - TFLint cloud rules and Trivy source/saved-plan gates, including fail-closed apply checks.
 - Explicit AWS, Azure, and GCP state bootstrap with deletion protection and backend JSON output.
 - Deployment-scoped `state-list` and `state-show` commands.

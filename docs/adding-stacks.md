@@ -35,7 +35,10 @@ All bundled cloud tests use mocked providers and `command = plan`.
 Place a demonstrated reusable capability under `modules/<name>` or
 `modules/<cloud>/<name>`. Modules declare required provider sources when needed
 but do not configure providers, select accounts, or declare backends. Pass inputs
-from stacks and return useful outputs. The naming module demonstrates the pattern.
+from stacks and return useful outputs. The [context module](../modules/context/README.md)
+demonstrates the pattern. Keep its call in `context.tf` and use `module.context.id`
+and `module.context.tags` for resource names and tags. Pass optional live-input
+tags through `var.tags`; the standard context keys remain reserved.
 
 A provider's physical resource model is not interchangeable with another cloud's.
 Share genuinely common policies or metadata rather than building a single module
@@ -54,7 +57,7 @@ validation. Keep credentials in the backend's native identity chain.
 
 Every new stack should include:
 
-- `main.tf`, `variables.tf`, `outputs.tf`, `versions.tf`, and `backend.tf.json`;
+- `context.tf`, `main.tf`, `variables.tf`, `outputs.tf`, `versions.tf`, and `backend.tf.json`;
 - `providers.tf` for external providers;
 - a committed `.terraform.lock.hcl` for provider-backed roots;
 - plan-only mocked tests under `tests/`;

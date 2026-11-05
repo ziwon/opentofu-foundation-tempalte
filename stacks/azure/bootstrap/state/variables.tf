@@ -49,3 +49,10 @@ variable "subscription_id" {
     error_message = "Provide a subscription UUID."
   }
 }
+
+variable "tags" {
+  description = "Additional portable tags or labels; standard context tags are reserved."
+  type        = map(string)
+  default     = {}
+  nullable    = false
+}

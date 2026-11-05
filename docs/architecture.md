@@ -27,6 +27,19 @@ The runner discovers deployments from `live/**/terraform.tfvars.json`. There is
 no separate hand-maintained inventory to update when adding an environment.
 The same inventory feeds local checks and CI.
 
+## Shared names and tags
+
+Every stack's `context.tf` calls `modules/context`. Its `id` output supplies the
+canonical `<namespace>-<name>-<environment>` name, and `tags` combines reserved
+deployment metadata with optional live-input tags. Resources and providers consume
+`module.context.id` and `module.context.tags` directly. The module creates no
+resources and requires no external provider or registry dependency.
+
+Cloud-specific naming transformations stay in each stack, including Azure storage
+account character restrictions and account/project suffixes for storage names.
+Additional tags do not alter names. See [names and tags](context.md) for the shared
+tag constraints and resource-specific `Name` examples.
+
 ## Native state backends
 
 | Backend | Derived state location |

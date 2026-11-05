@@ -1,21 +1,14 @@
-module "naming" {
-  source      = "../../../../modules/naming"
-  namespace   = var.namespace
-  name        = var.name
-  environment = var.environment
-}
-
 resource "azurerm_resource_group" "this" {
-  name     = "${module.naming.id}-rg"
+  name     = "${module.context.id}-rg"
   location = var.location
-  tags     = module.naming.tags
+  tags     = module.context.tags
 }
 resource "azurerm_virtual_network" "this" {
-  name                = module.naming.id
+  name                = module.context.id
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
   address_space       = [var.network_cidr]
-  tags                = module.naming.tags
+  tags                = module.context.tags
 }
 resource "azurerm_subnet" "private" {
   name                 = "private"
@@ -24,10 +17,10 @@ resource "azurerm_subnet" "private" {
   address_prefixes     = [var.subnet_cidr]
 }
 resource "azurerm_network_security_group" "this" {
-  name                = "${module.naming.id}-nsg"
+  name                = "${module.context.id}-nsg"
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
-  tags                = module.naming.tags
+  tags                = module.context.tags
   security_rule {
     name                       = "DenyInternetInbound"
     priority                   = 100

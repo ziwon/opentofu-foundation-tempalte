@@ -1,14 +1,17 @@
 # Local verification record
 
-Verified on 2026-11-03 on Linux x86_64. These results can be reproduced with the
-commands in the [README](../README.md#verification-and-ci).
+Verified on 2026-11-03 on Linux x86_64, with full checks, local smoke tests, and
+publication scans repeated for the context-module update on 2026-11-05.
+These results can be reproduced with the commands in the
+[README](../README.md#verification-and-ci).
 
 | Check | Result |
 | --- | --- |
-| OpenTofu 1.12.5 full check | Passed: structure, links, formatting, 20 Python behavior/report tests, validation of 10 stacks, and lint/security/mock tests for 30 deployments |
+| OpenTofu 1.12.5 full check | Passed: structure, links, formatting, 20 Python behavior/report tests, validation of 10 stacks, lint/security checks for 30 deployments, and 33 native plan test runs |
 | Terraform 1.15.8 full check | Passed against the same sources and provider lock files |
-| OpenTofu real local smoke | Passed init, plan/security, apply, output, state-list/state-show, destroy, environment isolation, stale/tampered-plan rejection, and failed-plan cleanup |
+| OpenTofu real local smoke | Passed init, plan/security, apply, output, state-list/state-show, destroy, environment isolation, tag propagation/validation, stable names, stale/tampered-plan rejection, and failed-plan cleanup |
 | Terraform real local smoke | Passed the same local lifecycle checks |
+| Context migration, both engines (2026-11-05) | Applied the previous revision's local catalog in a temporary checkout, switched to the context module, rejected the stale saved plan, reinitialized, and produced a new plan with zero changes; destroyed the local fixture afterward |
 | Trivy 0.76.1 quality smoke, both engines | Accepted safe source and binary plans; rejected open SSH, unsafe saved plans after source was fixed, and corrupt plans |
 | TFLint 0.65.0 quality smoke, both engines | Accepted valid input and rejected invalid/unused variable declarations using bundled rules |
 | Gitleaks 8.30.1 directory scan | No leaks found |

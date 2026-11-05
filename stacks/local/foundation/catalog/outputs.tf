@@ -4,5 +4,5 @@ output "catalog" {
 }
 output "deployment_name" {
   description = "Name scoped to the deployment environment."
-  value       = module.naming.id
+  value       = module.context.id
 }

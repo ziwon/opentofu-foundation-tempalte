@@ -9,12 +9,13 @@ the Python standard library.
 
 [한국어 안내](README.ko.md) · [Architecture](docs/architecture.md) ·
 [Cloud setup](docs/cloud-setup.md) · [Operations](docs/operations.md) ·
-[Bootstrap](docs/bootstrap.md) · [Quality checks](docs/quality.md) · [Contributing](CONTRIBUTING.md)
+[Bootstrap](docs/bootstrap.md) · [Names and tags](docs/context.md) ·
+[Quality checks](docs/quality.md) · [Contributing](CONTRIBUTING.md)
 
 ## Deployment model
 
 ```text
-modules/naming                       reusable code; no provider configuration or state
+modules/context                      reusable code; no provider configuration or state
           ↑
 stacks/aws/network/core               executable stack shared by environments
           +
@@ -28,7 +29,7 @@ name; no active environment file or named workspace changes its meaning.
 
 | Layer | Contains | Example |
 | --- | --- | --- |
-| `modules/` | Reusable building blocks | `modules/naming` |
+| `modules/` | Reusable building blocks | `modules/context` |
 | `stacks/` | Resources, providers, backend type, lock file, tests | `stacks/aws/network/core` |
 | `live/` | `backend.json` and `terraform.tfvars.json` | `live/prod/aws/network/core` |
 | `.infra/` | Ignored state, plans, provider cache, and working data | Created by the runner |
@@ -95,6 +96,23 @@ These examples establish a starting point, not a complete production platform.
 They create no compute workloads, NAT gateways, or public IPs. Storage, requests,
 versions, and network logging can incur charges. Add organization-specific IAM,
 monitoring, retention, private endpoints, and recovery controls before production.
+
+## Consistent resource names and tags
+
+Each stack calls the local context module in `context.tf`. Use its outputs for
+resource names and shared metadata:
+
+```hcl
+name = module.context.id
+tags = module.context.tags
+```
+
+The ID is `<namespace>-<name>-<environment>`. Add optional `tags` in live inputs
+for metadata such as `owner` or `cost_center`; the standard `project`,
+`environment`, and `managed_by` tags remain reserved. AWS provider defaults,
+Azure resource tags, and GCP labels use the same map. Resource-specific names
+and cloud naming constraints are handled in the stack. See the
+[context guide](docs/context.md) for examples and migration instructions.
 
 ## Add an environment or stack
 
@@ -169,7 +187,8 @@ mise exec -- gitleaks dir . --redact --no-banner
 The [CI workflow](.github/workflows/check.yml) runs the same checks for both
 engines. Stack tests mock providers and use plan-only runs. The smoke test
 executes real init/plan/apply/output/destroy commands in a disposable local-only
-repository and checks environment isolation, stale plans, and failed-plan cleanup.
+repository and checks environment isolation, tag propagation and validation,
+stable resource names, stale plans, and failed-plan cleanup.
 The quality smoke also proves that unsafe source and binary plans fail security
 checks, using temporary fixtures and fake credentials with identity probes disabled.
 CI has no cloud credentials and does not deploy infrastructure. See the

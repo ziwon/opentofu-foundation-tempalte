@@ -46,6 +46,31 @@ def smoke(engine: str):
         name = targets[0]
         deployment = Deployment(root, name)
         original = deployment.variables.read_text()
+        runner = Runner(deployment, engine)
+        before = json.loads(runner.run("output", "-json", capture=True).stdout)["catalog"]["value"]
+        inputs = json.loads(original)
+        extra_tags = {"owner": "platform", "cost_center": "research"}
+        deployment.variables.write_text(json.dumps({**inputs, "tags": extra_tags}))
+        command("plan", name)
+        command("apply", name, "--yes")
+        after = json.loads(runner.run("output", "-json", capture=True).stdout)["catalog"]["value"]
+        assert after["name"] == before["name"]
+        assert after["tags"] == {**before["tags"], **extra_tags}
+
+        boundary_tags = {f"tag_{index}": "" for index in range(46)}
+        deployment.variables.write_text(json.dumps({**inputs, "tags": boundary_tags}))
+        command("plan", name)
+        for invalid_tags in (
+            {"project": "override"}, {"environment": "override"}, {"managed_by": "override"},
+            {"Owner": "platform"}, {"owner": "Platform"}, {"owner": None},
+            {"a" * 64: "value"}, {"owner": "a" * 64}, {**boundary_tags, "overflow": ""},
+        ):
+            deployment.variables.write_text(json.dumps({**inputs, "tags": invalid_tags}))
+            result = command("plan", name, succeeds=False)
+            assert "Invalid value for variable" in result.stdout + result.stderr
+            assert not runner.plan.exists() and not runner.receipt.exists()
+        deployment.variables.write_text(original)
+
         command("plan", name)
         deployment.variables.write_text(original.replace("starter", "changed"))
         result = command("apply", name, "--yes", succeeds=False)
@@ -53,7 +78,6 @@ def smoke(engine: str):
         deployment.variables.write_text(original)
 
         command("plan", name)
-        runner = Runner(deployment, engine)
         runner.plan.write_bytes(runner.plan.read_bytes() + b"tampered")
         result = command("apply", name, "--yes", succeeds=False)
         assert "no longer matches" in result.stderr
@@ -70,7 +94,7 @@ def smoke(engine: str):
             command("apply", name, "--yes")
             state = json.loads(Path(Deployment(root, name).backend()["path"]).read_text())
             assert not state.get("resources"), state
-    print(f"{engine}: real init/plan/security/apply/output/state-list/state-show/destroy, environment isolation, stale-plan rejection, and failed-plan cleanup passed")
+    print(f"{engine}: real init/plan/security/apply/output/state-list/state-show/destroy, environment isolation, tag propagation/validation, stable names, stale-plan rejection, and failed-plan cleanup passed")
 
 
 if __name__ == "__main__":

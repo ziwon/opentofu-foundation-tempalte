@@ -46,3 +46,10 @@ variable "subnet_cidr" {
     error_message = "Use an IPv4 CIDR."
   }
 }
+
+variable "tags" {
+  description = "Additional portable tags or labels; standard context tags are reserved."
+  type        = map(string)
+  default     = {}
+  nullable    = false
+}
