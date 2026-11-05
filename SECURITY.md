@@ -2,41 +2,50 @@
 
 ## Report a vulnerability
 
-Use the repository's **Security → Report a vulnerability** feature when enabled.
-If it is unavailable, contact a maintainer through a private channel listed on
-their profile before sharing sensitive details. Do not include credentials,
-state files, saved plans, or exploit details in a public issue.
+Use the repository's **Security** tab and **Report a vulnerability** action when enabled.
+Otherwise, contact a maintainer through a private channel listed on their profile.
+Do not share credentials, state, saved plans, or exploit details in a public issue.
 
 Maintainers should enable private vulnerability reporting before publication.
-Until release support windows are defined, fixes target the default branch;
-there is no support or response-time SLA.
+Until release support windows are defined, fixes target the default branch.
+There is no support or response-time SLA.
 
-## Scope and responsibilities
+## Deployment policy
 
-The template isolates deployment paths, backend metadata, command locks, and
-saved plans. It rejects stale or swapped plans and keeps generated material under
-ignored `.infra/`. These controls protect against mistakes by operators; they do
-not defend against a compromised checkout, CLI executable, workstation, or cloud
-identity. A plan receipt is not a signed approval.
+Each native OpenTofu root has an explicit backend and independent state. Native
+backend locking and saved-plan state checks still apply. Local commands do not
+verify checkout fingerprints, create plan receipts, scan automatically, or ask
+for an exact deployment name. Applying a saved plan has no interactive confirmation.
+These changes remove the previous repository runner's local enforcement.
+
+Use trusted automation for enforced source and saved-plan scans, deployment
+approvals, and restrictions on untrusted code. The Atlantis example combines
+native commands with quality checks and server-owned apply requirements.
+A scan or approval does not protect against a compromised workstation, provider,
+CLI, server, checkout, or cloud identity.
 
 Cloud credentials belong in supported identity mechanisms, preferably short-lived
-SSO, role assumption, or workload identity federation. Restrict both workload and
-state permissions. A remote state's access policy is a security boundary, whereas
-an environment name or state prefix alone is not.
+SSO, role assumption, or workload identity federation. Restrict workload and state
+permissions independently. A state access policy is a security boundary.
+An environment name or state prefix alone is not.
 
-State and plans can contain secrets even when input/output values are marked
-`sensitive`. Do not commit or publish them, print raw state in CI, or upload plans
-as broadly accessible artifacts. Readonly CI never needs cloud credentials.
+State and saved plans can contain secrets even when values are marked `sensitive`.
+Keep them out of Git, public logs, and broadly accessible artifacts. `tofu state show`
+and `tofu output -json` can reveal sensitive values. Bootstrap state needs an encrypted,
+access-controlled backup independent of the storage it manages.
 
-Bundled cloud tests use mocked providers; they do not audit a cloud account or
-establish production compliance. Operators must configure organization-specific
-policies, logging, key management, backups, and recovery procedures.
+## Verification scope
 
-TFLint and Trivy run locally and in CI. Trivy blocks HIGH/CRITICAL source and
-saved-plan misconfigurations; `apply --yes` cannot bypass the saved-plan gate.
-Raw scan reports stay in memory. Gitleaks checks secrets independently.
-See [quality checks](docs/quality.md) for the exact scope and failure behavior.
+Credential-free CI checks configuration and mocked plans. It does not audit cloud
+accounts or establish production compliance. Adopters own organization-specific
+IAM, logging, key management, backups, approval policy, and recovery exercises.
 
-`state-show` is read-only but its output can reveal sensitive resource attributes.
-Use it in an authorized terminal rather than public CI logs. Bootstrap state is
-local and requires a secure independent backup; see [bootstrap](docs/bootstrap.md).
+The quality helper blocks HIGH and CRITICAL Trivy findings and fails on missing
+checks or unrecognized reports. It keeps raw reports in memory and prints diagnostic
+check IDs. Trusted deployment workflows scan both source and the saved plan before
+apply. Native local use can bypass these checks. See [quality checks](docs/quality.md).
+Gitleaks checks secrets independently of infrastructure policy.
+
+Keep fork PRs disabled for Atlantis and retain the trusted repository and author
+boundary. Review [Atlantis setup](docs/atlantis.md), [migration](docs/migration.md),
+and [bootstrap recovery](docs/bootstrap.md) before enabling deployment credentials.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check deployment structure and local documentation links without cloud access."""
+"""Check native root structure, state identity, and documentation links."""
 
 import json
 from pathlib import Path
@@ -7,30 +7,52 @@ import re
 import sys
 from urllib.parse import unquote, urlsplit
 
-from infra import ROOT, UserError, inventory, source_files
+from atlantis import EXAMPLE, ROOT, configuration, write_configuration
 
 
 def check(root: Path):
-    deployments = inventory(root)
-    if not deployments:
-        raise UserError("No live deployments found")
-    declared = {deployment.stack for deployment in deployments}
-    discovered = {path.parent for path in (root / "stacks").rglob("backend.tf.json")}
-    if declared != discovered:
-        raise UserError(f"Stacks and deployment inventory differ: {declared ^ discovered}")
-    state_addresses = set()
-    for deployment in deployments:
-        deployment.validate()
-        address = (deployment.backend_type, json.dumps(deployment.backend(), sort_keys=True))
-        if address in state_addresses:
-            raise UserError(f"Duplicate state address: {deployment.name}")
-        state_addresses.add(address)
-        if "required_providers" in (deployment.stack / "versions.tf").read_text():
-            if not (deployment.stack / ".terraform.lock.hcl").is_file():
-                raise UserError(f"Missing provider lock file: {deployment.stack}; run infra.py lock")
-    for path in source_files(root / "modules"):
-        if re.search(r'\b(?:provider|backend)\s+"', path.read_text()):
-            raise UserError(f"Reusable modules must not configure providers or backends: {path}")
+    write_configuration(configuration(root), root / EXAMPLE, check=True)
+    roots = sorted((root / "live").glob("*/*/*/*/terraform.tfvars.json"))
+    if not roots or (root / "stacks").exists():
+        raise ValueError("Use native live roots and reusable modules; no stacks runtime layer")
+    states = set()
+    compositions = set()
+    for variables in roots:
+        directory = variables.parent
+        deployment = directory.relative_to(root / "live")
+        environment, cloud, group, stack = deployment.parts
+        for name in ("backend.tf", "context.tf", "main.tf", "variables.tf", "outputs.tf", "versions.tf", "providers.tf", "tests/context.tftest.hcl"):
+            if not (directory / name).is_file():
+                raise ValueError(f"Missing native root file: {directory / name}")
+        values = json.loads(variables.read_text())
+        if values.get("environment") != environment:
+            raise ValueError(f"Environment differs from directory: {deployment}")
+        module = root / "modules" / cloud / group / stack
+        compositions.add(module)
+        source = f'../../../../../modules/{cloud}/{group}/{stack}'
+        if not re.search(r'source\s*=\s*"' + re.escape(source) + '"', (directory / "main.tf").read_text()):
+            raise ValueError(f"Root does not call its resource module: {deployment}")
+        backend = (directory / "backend.tf").read_text()
+        kind = re.search(r'backend\s+"([^"]+)"', backend).group(1)
+        attribute = {"local": "path", "s3": "key", "azurerm": "key", "gcs": "prefix"}[kind]
+        actual = re.search(r'\b' + attribute + r'\s*=\s*"([^"]+)"', backend).group(1)
+        expected = deployment.as_posix() + ("" if kind == "gcs" else "/terraform.tfstate")
+        if kind == "local":
+            expected = "../../../../../.infra/state/" + expected
+        if actual != expected:
+            raise ValueError(f"State identity differs: {deployment}: {actual}")
+        state = kind, actual
+        if state in states:
+            raise ValueError(f"Duplicate state identity: {deployment}")
+        states.add(state)
+        if cloud != "local" and not (directory / ".terraform.lock.hcl").is_file():
+            raise ValueError(f"Missing provider lock: {deployment}")
+    discovered = {path.parent for path in (root / "modules").glob("*/*/*/main.tf")}
+    if compositions != discovered:
+        raise ValueError(f"Composition modules and live roots differ: {compositions ^ discovered}")
+    for path in (root / "modules").rglob("*.tf"):
+        if ".terraform" not in path.parts and re.search(r'\b(?:provider|backend)\s+"', path.read_text()):
+            raise ValueError(f"Reusable modules must not configure providers or backends: {path}")
     for path in root.rglob("*.md"):
         if any(part.startswith(".") for part in path.relative_to(root).parts[:-1]):
             continue
@@ -40,13 +62,13 @@ def check(root: Path):
                 continue
             destination = (path.parent / unquote(link.path)).resolve()
             if not destination.is_relative_to(root.resolve()) or not destination.exists():
-                raise UserError(f"Broken local link in {path.relative_to(root)}: {target}")
-    print(f"Layout OK: {len(declared)} stacks, {len(deployments)} deployments, unique states, valid local links")
+                raise ValueError(f"Broken local link in {path.relative_to(root)}: {target}")
+    print(f"Layout OK: {len(compositions)} modules, {len(roots)} native roots, unique state paths, valid local links")
 
 
 if __name__ == "__main__":
     try:
         check(ROOT)
-    except (UserError, OSError) as error:
+    except (ValueError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         raise SystemExit(1)

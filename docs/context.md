@@ -1,12 +1,11 @@
 # Resource names and tags
 
-Every executable stack defines `module "context"` in `context.tf`, calling the
-local [context module](../modules/context/README.md). It produces one canonical
-deployment ID and a common tag map from the stack's live inputs.
+Every executable root calls the local [context module](../modules/context/README.md)
+in `context.tf`. The module produces the deployment name and common tag map.
 
 ```hcl
 module "context" {
-  source      = "../../../../modules/context"
+  source      = "../../../../../modules/context"
   namespace   = var.namespace
   name        = var.name
   environment = var.environment
@@ -14,23 +13,24 @@ module "context" {
 }
 ```
 
-`main.tf` owns resources, `variables.tf` declares inputs, and `providers.tf` owns
-cloud authentication and defaults. `context.tf` is an ordinary file in that same
-root module, so all these files can reference `module.context` directly.
-
-## Use the shared convention
-
-For resources accepting a name and tags:
+`context.tf` is an ordinary root file. Provider configuration can reference
+`module.context.id` and `module.context.tags` directly. The root passes these
+outputs into its composition module:
 
 ```hcl
-resource "azurerm_resource_group" "this" {
-  name     = "${module.context.id}-rg"
-  location = var.location
-  tags     = module.context.tags
+context = {
+  id   = module.context.id
+  tags = module.context.tags
 }
 ```
 
-AWS resources supporting provider defaults receive the common tags automatically:
+The composition declares `context` as `object({ id = string, tags = map(string) })`.
+Its resources use `var.context.id` and `var.context.tags`. Cloud-specific name
+transformations stay with those resources.
+
+## Provider and resource tags
+
+AWS provider defaults receive the common tags from the root:
 
 ```hcl
 provider "aws" {
@@ -38,23 +38,23 @@ provider "aws" {
   allowed_account_ids = [var.aws_account_id]
   default_tags { tags = module.context.tags }
 }
+```
 
+The network composition keeps the resource-specific `Name` tag separate:
+
+```hcl
 resource "aws_vpc" "this" {
   cidr_block = var.network_cidr
-  tags       = { Name = module.context.id }
+  tags       = { Name = var.context.id }
 }
 ```
 
-When passing tags into a child module, use `tags = module.context.tags`. A resource
-that needs an explicit map including its name can use
-`merge(module.context.tags, { Name = "${module.context.id}-private" })`.
-Keep resource-specific `Name` outside the shared map so distinct resources retain
-their own display names. GCP uses `default_labels = module.context.tags` and explicit
-`labels` on supported resources; Compute Engine network tags are a different feature.
+Azure resources receive `var.context.tags`. GCP provider defaults and supported
+resource labels use the common map. GCP Compute Engine network tags are a different feature.
 
 ## Add environment metadata
 
-Add a `tags` object to the selected live `terraform.tfvars.json`:
+Add a `tags` object to the root's `terraform.tfvars.json`. Retain its cloud-specific inputs.
 
 ```json
 {
@@ -68,26 +68,15 @@ Add a `tags` object to the selected live `terraform.tfvars.json`:
 }
 ```
 
-Retain the existing cloud-specific inputs in that file. This produces ID
-`starter-core-dev` and tags `project=starter`, `environment=dev`, `managed_by=iac`,
-`owner=platform`, and `cost_center=research`. Omitting `tags` preserves the original
-three tags. The module rejects reserved-key overrides, nonportable characters,
-null tag values, and maps exceeding its tag budget.
+The ID is `starter-core-dev`. The tags are `project=starter`, `environment=dev`,
+`managed_by=iac`, `owner=platform`, and `cost_center=research`. Omitting `tags`
+retains the three standard tags. The context module rejects reserved-key overrides,
+nonportable characters, null values, and maps exceeding its tag budget.
 
-The template deliberately uses a shared subset of the
-[GCP label requirements](https://cloud.google.com/compute/docs/labeling-resources#requirements),
-[AWS tag restrictions](https://docs.aws.amazon.com/tag-editor/latest/userguide/reference.html),
-and [Azure tag limits](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources).
-Check the particular resource's constraints when adding more resource-specific tags.
+The template uses a shared subset of cloud tag and label constraints. Check a
+resource's own limits before adding resource-specific metadata. The ID does not
+contain cloud or group, so it is not globally unique across deployment paths.
 
-## Updating an existing checkout
-
-The former `modules/naming` and `module.naming` are now `modules/context` and
-`module.context`. Update custom callers, then run `init` for each affected deployment
-(`bootstrap init` for bootstrap stacks). The module creates no resources, so no
-state-address move is needed for the supplied examples. Existing IDs, default tags,
-resource addresses, backend paths, and per-cloud name transformations are preserved.
-
-This source change invalidates previously saved plans. Create a fresh plan before
-applying; do not reuse a plan from before the change. The `new` generator copies
-`context.tf` with the rest of a stack automatically.
+The native-root migration preserves existing names, tags, and cloud-specific
+transformations. It changes managed-resource addresses through `module.stack`.
+Follow the [migration guide](migration.md) for existing state.

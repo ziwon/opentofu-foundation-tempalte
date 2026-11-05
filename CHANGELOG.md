@@ -2,17 +2,23 @@
 
 ## Unreleased
 
-- Stack-level `context.tf` with shared `module.context.id` and `module.context.tags` outputs.
-- Optional portable tags with reserved standard keys, preserving existing resource names.
-- TFLint cloud rules and Trivy source/saved-plan gates, including fail-closed apply checks.
-- Explicit AWS, Azure, and GCP state bootstrap with deletion protection and backend JSON output.
-- Deployment-scoped `state-list` and `state-show` commands.
-- Customer-managed AWS storage keys and Azure storage network default deny.
-- Real scanner/linter acceptance and rejection smoke tests for both engines.
-
-- Explicit environment/cloud/group/stack deployments with native state backends.
-- AWS, Azure, and GCP network/storage examples for dev, stage, and prod.
-- A cloud-free local catalog and deployment generator.
-- Saved-plan verification, per-deployment working data and process locks.
-- OpenTofu and Terraform checks, mocked cloud tests, and real local smoke tests.
-- Documentation, contribution guidance, and MIT licensing.
+- Native OpenTofu roots for all 30 live deployments. Ordinary init, plan, apply,
+  output, and state operations no longer require repository Python.
+- Shared resources moved into `modules/<cloud>/<group>/<stack>`. Roots retain
+  provider configuration, locks, backend identity, and `module.context` names and tags.
+- Explicit moved blocks preserve state addresses during the module transition.
+  Local and bootstrap state paths and remote keys remain unchanged.
+- OpenTofu-only tooling and CI. Removed Terraform CLI support and the custom deployment runner.
+- Optional `just` aliases expose native commands. Python remains available for checks,
+  scanner reports, fixture tests, and Atlantis project generation.
+- Atlantis uses built-in init, plan, and apply with source and saved-plan scans,
+  server-owned approvals, disabled fork PRs, and separate bootstrap management.
+- Local native commands no longer enforce checkout fingerprints, plan receipts,
+  exact-name prompts, automatic scans, or runner-managed plan cleanup.
+  Trusted deployment automation owns security and approval enforcement.
+- Plan-only mocked cloud tests, local lifecycle and migration fixtures, and real
+  scanner and linter acceptance and rejection checks.
+- AWS, Azure, and GCP network, storage, and protected state-bootstrap examples
+  for dev, stage, and prod, plus a cloud-free local catalog.
+- Native-root migration, operating, security, and contribution guides in addition
+  to English and Korean getting-started documentation.

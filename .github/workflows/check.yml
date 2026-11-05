@@ -15,13 +15,9 @@ concurrency:
 
 jobs:
   check:
-    name: check (${{ matrix.engine }})
+    name: OpenTofu checks
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        engine: [tofu, terraform]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -30,27 +26,49 @@ jobs:
         with:
           python-version: '3.12'
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
-        if: matrix.engine == 'tofu'
         with:
           tofu_version: '1.12.5'
           tofu_wrapper: false
-      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
-        if: matrix.engine == 'terraform'
-        with:
-          terraform_version: '1.15.8'
-          terraform_wrapper: false
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           version: '2026.7.14'
           install_args: trivy tflint
-      - name: Structure, lint, security, runner behavior, and mocked deployments
+      - name: Native roots, lint, security, and mocked deployments
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 tools/infra.py --engine '${{ matrix.engine }}' check
+        run: python3 tools/check.py
       - name: Real CLI lifecycle with local-only resources
-        run: python3 tools/smoke.py --engine '${{ matrix.engine }}'
+        run: python3 tools/smoke.py
+      - name: Baseline state migration with local-only resources
+        run: python3 tools/migration_smoke.py
       - name: Real linter and scanner acceptance and rejection checks
-        run: python3 tools/quality_smoke.py --engine '${{ matrix.engine }}'
+        run: python3 tools/quality_smoke.py
+
+  atlantis:
+    name: Atlantis configuration and security commands
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          version: '2026.7.14'
+          install_args: opentofu trivy tflint
+      - name: Install optional Atlantis verification tools
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mise trust integrations/atlantis/mise.toml
+          mise -C integrations/atlantis install
+      - name: Real server config and configured policy commands
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: mise -C integrations/atlantis exec -- python3 ../../tools/atlantis_native_smoke.py
 
   secrets:
     runs-on: ubuntu-24.04

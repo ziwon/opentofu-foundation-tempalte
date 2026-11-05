@@ -1,0 +1,15 @@
+repo-allowlist: github.com/REPLACE_OWNER/REPLACE_REPOSITORY
+repo-config: /etc/atlantis/repos.yaml
+checkout-strategy: merge
+allow-fork-prs: false
+allow-draft-prs: false
+allow-commands: plan,apply,unlock,version
+disable-apply-all: true
+disable-autoplan: true
+automerge: false
+parallel-plan: false
+parallel-apply: false
+autodiscover-mode: disabled
+default-tf-distribution: opentofu
+tf-download: false
+write-git-creds: false

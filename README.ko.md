@@ -1,134 +1,159 @@
-# Terraform Foundation Template
+# OpenTofu foundation template
 
-OpenTofu를 기본으로 사용하고 Terraform도 지원하는 멀티 클라우드 인프라 템플릿입니다.
-AWS·Azure·GCP 각각 네트워크와 스토리지 예제를 제공하고,
-동일한 코드를 dev·stage·prod의 독립된 상태로 실행합니다.
+AWS, Azure, GCP를 위한 인프라 모노레포 템플릿입니다. 각 배포 디렉터리가 독립적인
+OpenTofu 실행 루트입니다. 해당 디렉터리에서 `tofu` 명령을 직접 실행합니다.
+일반 배포에는 Python, 생성기, 저장소 전용 실행기가 필요하지 않습니다.
+지원하는 CLI는 OpenTofu입니다.
+
+[English](README.md) · [구조](docs/architecture.md) · [클라우드 설정](docs/cloud-setup.md) ·
+[운영](docs/operations.md) · [마이그레이션](docs/migration.md) · [보안](SECURITY.md)
 
 ## 기본 구조
 
 ```text
-modules/                         재사용 가능한 코드
-stacks/<cloud>/<group>/<stack>/   실행 가능한 스택
-live/<env>/<cloud>/<group>/<stack>/ 환경별 설정 데이터
-.infra/                          Git에서 제외되는 상태·plan·작업 디렉터리
+live/dev/aws/network/core/        독립적인 OpenTofu 루트
+  backend.tf                     명시적인 상태 저장 위치
+  context.tf                     공통 이름과 태그
+  main.tf                        module "stack" 호출
+  providers.tf                   계정 및 provider 설정
+  versions.tf                    OpenTofu 및 provider 버전 요구사항
+  .terraform.lock.hcl            선택된 provider 버전과 해시
+  variables.tf                   입력 선언
+  terraform.tfvars.json          비밀이 아닌 배포별 값
+  outputs.tf                     배포 출력
+  migrations.tf                  기존 리소스 주소의 이동 선언
+modules/context/                 공통 이름과 태그 규칙
+modules/aws/network/core/        재사용할 리소스 구현
 ```
 
-예를 들어 `dev/aws/network/core`와 `prod/aws/network/core`는
-`stacks/aws/network/core` 코드를 공유하지만, 입력 데이터와 상태 및 plan은 분리됩니다.
-모든 명령에 대상을 명시하므로 전역 환경 선택 파일에 의존하지 않습니다.
+배포 ID는 `environment/cloud/group/stack`입니다. AWS, Azure, GCP의 네트워크,
+스토리지, 상태 저장소 bootstrap과 로컬 catalog를 dev, stage, prod에 제공하므로
+총 30개 루트가 있습니다. 각 루트는 기본 workspace를 사용합니다.
+공통 모듈에는 backend나 provider 설정을 넣지 않습니다.
 
 ## 클라우드 계정 없이 시작하기
 
-Python 3.10 이상과 OpenTofu, Trivy가 필요합니다. [mise](https://mise.jdx.dev/)를 사용하면
-고정된 버전의 OpenTofu, Terraform, just, Gitleaks, Trivy, TFLint를 설치할 수 있습니다.
+OpenTofu 1.12.5를 설치합니다. [mise](https://mise.jdx.dev/)를 사용한다면
+[mise.toml](mise.toml)의 고정된 개발 도구 버전을 검토한 후 설치할 수 있습니다.
+아래 로컬 실행에는 Python이나 보안 검사 도구가 필요하지 않습니다.
 
 ```sh
-mise trust
-mise install
-mise exec -- python3 tools/infra.py list
-mise exec -- python3 tools/infra.py init dev/local/foundation/catalog
-mise exec -- python3 tools/infra.py plan dev/local/foundation/catalog
-mise exec -- python3 tools/infra.py apply dev/local/foundation/catalog
-mise exec -- python3 tools/infra.py output dev/local/foundation/catalog
+cd live/dev/local/foundation/catalog
+tofu init -lockfile=readonly
+tofu plan -out=plan.tfplan
+tofu apply plan.tfplan
+tofu output
+tofu state list
 ```
 
-apply 확인창에는 `dev/local/foundation/catalog`를 입력합니다.
-이 예제는 `terraform_data`만 사용하므로 로컬 상태만 생성합니다.
-클라우드 자격 증명이나 유료 리소스가 필요하지 않습니다.
+내장 `terraform_data` 리소스만 사용하므로 클라우드 리소스는 생성하지 않습니다.
+출력 이름은 `starter-catalog-dev`입니다. 상태는 저장소 기준
+`.infra/state/dev/local/foundation/catalog/terraform.tfstate`에 저장됩니다.
+저장된 plan을 apply하면 별도의 확인 질문이 나오지 않습니다. 먼저 plan을 검토하세요.
 
-mise가 셸에 활성화되어 있다면 `just plan dev/local/foundation/catalog`처럼 사용할 수 있습니다.
-
-## 실제 클라우드 사용
-
-1. 대상 `live/` 디렉터리의 `terraform.tfvars.json`에서 계정·프로젝트·구독·리전을 설정합니다.
-2. 아래 bootstrap으로 상태 저장소를 만들거나 기존 저장소를 사용하고, 그 설정을 `backend.json`에 입력합니다.
-3. 클라우드에 로그인합니다. 키·토큰·비밀번호는 저장소에 넣지 않습니다.
-4. `test → init → plan → apply` 순으로 진행합니다.
-
-상태 키는 경로에서 자동 생성되므로 `backend.json`에 직접 입력하지 않습니다.
-각 클라우드의 인증, 상태 저장소 권한, 운영 시 추가할 항목은
-[클라우드 설정 문서](docs/cloud-setup.md)에 정리되어 있습니다.
-
-## 상태 저장소 초기 구성
-
-AWS·Azure·GCP별 `bootstrap/state` 스택을 제공합니다. 먼저 대상 계정·리전·이름을
-`live/dev/<cloud>/bootstrap/state/terraform.tfvars.json`에 입력합니다.
-Azure는 backend를 사용할 클라이언트의 허용 IP 또는 서브넷도 설정해야 합니다.
+로컬 catalog를 제거할 때도 삭제 plan을 검토한 후 적용합니다.
 
 ```sh
-just bootstrap-init dev/aws/bootstrap/state
-just bootstrap-plan dev/aws/bootstrap/state
-just bootstrap-apply dev/aws/bootstrap/state
-just bootstrap-output dev/aws/bootstrap/state
+tofu plan -destroy -out=destroy.tfplan
+tofu apply destroy.tfplan
 ```
 
-마지막 명령의 JSON을 검토해서 일반 스택의 `backend.json`에 넣습니다.
-bootstrap 자체의 상태는 `.infra/state/`에 로컬로 보관되므로 매번 안전하게 백업해야 합니다.
-일반 `init`은 상태 저장소를 생성하지 않습니다. AWS에는 과금되는 KMS 키를 생성하고,
-Azure에는 네트워크 기본 차단을 적용합니다. [초기 구성과 복구 절차](docs/bootstrap.md)를 참고하세요.
+저장소 루트에서는 `just init dev/local/foundation/catalog`,
+`just plan dev/local/foundation/catalog`, `just apply dev/local/foundation/catalog`를
+선택적으로 사용할 수 있습니다. 이 명령은 native OpenTofu 명령의 별칭입니다.
+전체 목록은 `just --list`로 확인합니다.
 
-## 보안·품질 검사와 상태 조회
+## 실제 클라우드 배포 준비
+
+1. `live/<environment>/<cloud>/<group>/<stack>` 루트를 선택합니다.
+2. `terraform.tfvars.json`에 실제 계정, 구독, 프로젝트, 리전, 이름을 설정합니다.
+3. [bootstrap](docs/bootstrap.md)으로 상태 저장소를 만들거나 기존 저장소를 사용합니다.
+4. `backend.tf`의 저장소 예제 값을 바꿉니다. 기존 배포의 key나 prefix는 유지합니다.
+5. 클라우드의 기본 인증 방식을 사용합니다. 키, 토큰, 비밀번호는 Git에 넣지 않습니다.
+6. 검사를 실행하고 backend를 초기화한 뒤 저장된 plan을 검토합니다. 승인된 절차로 적용합니다.
 
 ```sh
-just lint dev/aws/storage/bucket
-just security dev/aws/storage/bucket
-just security-plan dev/aws/storage/bucket
-just state-list dev/local/foundation/catalog
-just state-show dev/local/foundation/catalog terraform_data.catalog
+tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
+tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
+tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 ```
 
-TFLint는 언어·클라우드 규칙을 검사하고, Trivy는 코드와 저장된 plan의 HIGH·CRITICAL
-설정 문제를 차단합니다. `plan`과 `apply`에도 저장된 plan 검사가 자동 실행되며
-`--yes`로 생략할 수 없습니다. `security-plan`은 먼저 만들어 둔 plan이 필요합니다.
-상태 조회 출력에는 민감한 값이 있을 수 있으므로 공개 로그에 남기지 마세요.
-[검사 범위와 예외 처리](docs/quality.md)를 참고하세요.
+AWS는 VPC, 비공개 subnet, 기본 차단 security group과 암호화된 S3 예제를 제공합니다.
+Azure는 VNet, subnet, network security group과 identity 기반 Blob storage를 제공합니다.
+GCP는 custom VPC, subnet, ingress firewall과 비공개 GCS bucket을 제공합니다.
+클라우드별 인증과 권한은 [클라우드 설정](docs/cloud-setup.md)을 참고하세요.
 
-## 리소스 이름과 태그 통일
+이 예제에는 컴퓨팅 workload, NAT gateway, 공인 IP가 없습니다. 저장 데이터,
+요청, KMS key, 버전, 로그에는 비용이 발생할 수 있습니다. 운영 환경에 적용하기 전에
+조직의 IAM, 모니터링, 보존, 사설 연결, 복구 요구사항을 검토해야 합니다.
 
-각 스택의 `context.tf`에서 공통 모듈을 호출하고, 리소스에서 다음 출력을 사용합니다.
+## 상태 저장소 bootstrap
 
-```hcl
-name = module.context.id
-tags = module.context.tags
-```
-
-이름은 `<namespace>-<name>-<environment>` 형식입니다. `live/`의 입력 파일에
-`"tags": {"owner": "platform", "cost_center": "research"}`처럼 추가 태그를 지정할 수 있습니다.
-기본 태그인 `project`, `environment`, `managed_by`는 덮어쓸 수 없습니다.
-AWS는 provider의 기본 태그, Azure는 리소스 태그, GCP는 labels로 연결합니다.
-AWS의 리소스별 `Name`과 클라우드별 이름 제약도 유지합니다.
-[사용 예제와 기존 naming 모듈 이관 안내](docs/context.md)를 참고하세요.
-
-## 환경과 스택 추가
+각 클라우드의 `live/<environment>/<cloud>/bootstrap/state`도 일반 native 루트입니다.
+대상 계정과 이름을 설정하고, Azure는 접근을 허용할 IP나 subnet도 설정합니다.
 
 ```sh
-# 기존 스택을 새 환경에서 사용
-python3 tools/infra.py new preview/aws/network/core --from dev/aws/network/core
-
-# 같은 클라우드에 별도 스택 추가
-python3 tools/infra.py new dev/aws/network/analytics --from dev/aws/network/core
+tofu -chdir=live/dev/aws/bootstrap/state init -lockfile=readonly
+tofu -chdir=live/dev/aws/bootstrap/state plan -out=bootstrap.tfplan
+tofu -chdir=live/dev/aws/bootstrap/state apply bootstrap.tfplan
+tofu -chdir=live/dev/aws/bootstrap/state output -json backend_config
 ```
 
-생성기는 기존 파일을 덮어쓰지 않습니다. 생성 후 계정, backend, CIDR 등의 값을 검토하세요.
-서로 다른 토폴로지는 별도 스택으로 만들고, 공통 기능은 `modules/`로 추출합니다.
+plan을 검토하고 필요한 검사와 승인을 받은 후 apply하세요. 마지막 출력의 속성을
+workload의 `backend.tf`에 옮기고, 해당 workload의 명시적인 key나 prefix는 유지합니다.
+일반 `init`은 저장소를 생성하지 않습니다. Bootstrap에는 삭제 보호가 있으며 Atlantis
+대상에서 제외됩니다. 상태는 `.infra/state/<deployment>/terraform.tfstate`에 저장되므로
+적용 후 독립적인 암호화 저장소에 백업하세요. [초기 구성과 복구](docs/bootstrap.md)를 참고하세요.
 
-## 검증과 호환성
+## 이름과 태그
+
+각 루트의 `context.tf`가 `modules/context`를 호출합니다.
+`module.context.id`는 `<namespace>-<name>-<environment>` 형식입니다.
+`module.context.tags`는 공통 태그와 입력의 추가 태그를 합칩니다.
+`project`, `environment`, `managed_by`는 예약된 키이므로 덮어쓸 수 없습니다.
+
+루트는 `id`와 `tags`가 있는 `context` 객체를 `module.stack`에 전달합니다.
+리소스 모듈은 `var.context.id`, `var.context.tags`를 사용합니다.
+Provider 설정은 루트에 두고, 클라우드별 이름 변환은 리소스 모듈에 둡니다.
+[이름과 태그](docs/context.md), [배포 추가](docs/adding-stacks.md)를 참고하세요.
+
+## 기존 상태 마이그레이션
+
+로컬 및 bootstrap 상태 경로, S3와 Azure의 key, GCS의 prefix는 유지됩니다.
+기존 checkout을 업데이트하면서 `.infra/`를 삭제하면 안 됩니다.
+
+리소스는 `aws_vpc.this`에서 `module.stack.aws_vpc.this`와 같은 주소로 이동합니다.
+각 루트의 `migrations.tf`에 있는 `moved` 선언이 이 변경을 연결합니다.
+선언을 유지하고, 상태를 백업한 후 기존 상태에 대한 새 plan을 검토하세요.
+주소 이동만 있는 경우 리소스 생성, 수정, 교체, 삭제가 없어야 합니다.
+기존 plan은 재사용하지 않습니다. 자세한 절차는 [마이그레이션](docs/migration.md)에 있습니다.
+
+## 검사와 배포 정책
+
+Python 3.10 이상은 저장소 검사, 보고서 처리, 테스트용 개발 의존성입니다.
+일반 `tofu` 실행에는 필요하지 않습니다.
 
 ```sh
-python3 tools/infra.py check
-python3 tools/smoke.py --engine tofu
-python3 tools/smoke.py --engine terraform
-python3 tools/quality_smoke.py --engine tofu
-python3 tools/quality_smoke.py --engine terraform
+python3 tools/check.py
+python3 tools/smoke.py
+python3 tools/quality_smoke.py
+gitleaks dir . --redact --no-banner
 ```
 
-기본 CLI는 OpenTofu입니다. Terraform은 `--engine terraform` 또는
-`TF_CLI=terraform`으로 선택할 수 있습니다. 실제 배포의 상태를 두 엔진 사이에서
-번갈아 사용하는 것은 별도의 마이그레이션 검토가 필요합니다.
+CI는 OpenTofu만 사용합니다. 형식, 구조, provider 검증, lint, 소스 보안 검사,
+mock plan, 로컬 수명주기를 검사합니다. 실제 scanner가 안전한 입력은 허용하고
+위험하거나 인식하지 못한 입력은 거부하는지도 확인합니다. 클라우드 테스트는 plan만
+만들며 실제 적용과 삭제는 임시 로컬 `terraform_data`에 한정합니다.
 
-클라우드 테스트는 provider를 모의 실행합니다. 실제 클라우드 계정에서의 배포와
-복구까지 검증했다는 의미는 아닙니다. 네트워크·스토리지 예제를 운영에 사용하려면
-조직별 IAM, 모니터링, 보존 정책, 사설 접근, 복구 절차를 추가해야 합니다.
+Native 로컬 명령에는 이전 실행기의 소스 fingerprint, plan receipt, 정확한 배포 이름
+확인, 자동 보안 검사, plan 정리가 없습니다. 저장된 plan의 apply에는 확인 질문도 없습니다.
+이는 명시적인 정책 변경입니다. 필수 보안 검사와 승인은 신뢰할 수 있는 배포 자동화에서
+강제해야 합니다. [보안 정책](SECURITY.md)과 [품질 검사](docs/quality.md)를 참고하세요.
 
-[전체 명령과 구조](README.md) · [운영 절차](docs/operations.md) ·
-[공개 전 확인 사항](docs/publishing.md) · [MIT 라이선스](LICENSE)
+선택형 [Atlantis 연동](docs/atlantis.md)은 built-in `init`, `plan`, `apply`와
+명시적인 소스 및 저장된 `PLANFILE` 검사를 사용합니다. 승인은 서버 소유 설정에 두며
+fork PR, 자동 merge, bootstrap 프로젝트는 비활성화합니다. 일반 로컬 CLI에는 Atlantis가
+필요하지 않습니다.
+
+State, plan, 출력에는 민감한 값이 포함될 수 있습니다. Git이나 공개 로그에 남기지 마세요.
+[검증 범위](docs/verification.md) · [공개 전 확인](docs/publishing.md) · [MIT 라이선스](LICENSE)

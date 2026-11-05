@@ -1,11 +1,11 @@
 # Context
 
-One naming and tagging convention for every stack. The module contains only
+One naming and tagging convention for every native deployment root. The module contains only
 locals, variables, and outputs; it creates no resources or provider configuration.
 
 ```hcl
 module "context" {
-  source      = "../../../../modules/context"
+  source      = "../../../../../modules/context"
   namespace   = var.namespace
   name        = var.name
   environment = var.environment
@@ -13,8 +13,9 @@ module "context" {
 }
 ```
 
-Place this call in the stack's `context.tf`. Use `module.context.id` for resource
-names and `module.context.tags` for common tags or labels. The ID remains
+Place this call in the live root's `context.tf`. Pass `module.context.id` and
+`module.context.tags` to the composition's typed `context` input. Resources use
+`var.context.id` for names and `var.context.tags` for common tags or labels. The ID remains
 `<namespace>-<name>-<environment>`; each segment accepts 1–16 lowercase letters,
 digits, or hyphens, beginning with a letter. Adding tags does not change the ID.
 
@@ -35,10 +36,10 @@ the common 50-tag limit. Individual resource types may impose narrower limits.
 
 AWS provider `default_tags` and GCP provider `default_labels` receive the common
 map where supported. Azure resources receive `tags` explicitly. AWS `Name` tags
-belong to individual resources, so subnets can use `${module.context.id}-private`
+belong to individual resources, so subnets can use `${var.context.id}-private`
 without sharing the VPC's display name. For GCP, these are labels, not Resource
 Manager tags or Compute Engine network tags. Cloud-specific naming adapters
-(for example Azure storage-account names without hyphens) remain in each stack.
+(for example Azure storage-account names without hyphens) remain in each resource composition.
 
-See [the stack context guide](../../docs/context.md) for resource examples and
+See [the context guide](../../docs/context.md) for resource examples and
 environment configuration.
