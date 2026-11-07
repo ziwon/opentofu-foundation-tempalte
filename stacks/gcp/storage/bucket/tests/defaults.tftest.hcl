@@ -15,4 +15,8 @@ run "workload_bucket" {
     condition     = output.deployment_name == var.context.id
     error_message = "Export the deployment name."
   }
+  assert {
+    condition     = module.bucket.soft_delete_retention_seconds == null
+    error_message = "The workload bucket must leave soft delete to the provider."
+  }
 }

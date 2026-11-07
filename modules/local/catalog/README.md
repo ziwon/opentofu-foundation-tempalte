@@ -7,4 +7,5 @@ resources. `stacks/local/foundation/catalog` calls it as `module "catalog"` and 
 The resource input keeps the object type of the tags that earlier state recorded, so
 existing deployments plan a no-op move instead of an update.
 
-Run plan-only mocked checks with `tofu init -backend=false` and `tofu test`.
+Run checks with `tofu init -backend=false` and `tofu test`. The test plans the local
+`terraform_data` resource and needs no mocks or cloud credentials.

@@ -10,6 +10,43 @@
   provider range within the current major version, and each root's exact pin and
   lock file select the version. Dependabot now updates roots only. Plans and
   provider selections are unchanged.
+- The Atlantis trust model now has one detailed home in `docs/atlantis.md`.
+  `SECURITY.md`, `docs/quality.md`, and the integration reference link to it. CI
+  caches `.infra/tflint-plugins` keyed on `.tflint.hcl` and passes the read-only
+  GitHub token to the quality fixture. GitHub API 504 errors during
+  TFLint plugin installation failed two earlier runs.
+- The layout check reads each root's module calls and requires `module "stack"` to use
+  the exact `../../../../../stacks/<cloud>/<group>/<stack>` source, so a comment that
+  names the path no longer hides a call to another directory. The layout check and
+  `tools/check.py` discover a stack by any `.tf` file, not only `main.tf`. The core
+  network modules export `subnet_cidr`, and the AWS and Azure modules also export
+  `network_cidr`. Stack tests now pin the network CIDR wiring and the GCP workload
+  bucket's absent soft delete policy. Plans do not change.
+- The GCP stacks call the core modules `modules/gcp/storage-bucket` as
+  `module "bucket"` and `modules/gcp/network` as `module "network"`. Their resources
+  moved from `module.stack.<resource>` to `module.stack.module.bucket.<resource>` and
+  `module.stack.module.network.<resource>`. `moved` blocks in each stack continue the
+  roots' moves, and planned attributes do not change. The bucket name-length tests
+  now run in the core module. The workload bucket in `gcp/storage/bucket` now uses
+  `prevent_destroy`. Run `tofu init` again in existing GCP working directories.
+- Azure storage accounts and their containers moved into the core module
+  `modules/azure/storage-account`, which `stacks/azure/bootstrap/state` and
+  `stacks/azure/storage/bucket` call as `module "storage_account"`. The Azure virtual
+  network, subnet, network security group, and association moved into
+  `modules/azure/network`, which `stacks/azure/network/core` calls as `module "network"`.
+  Resource groups stay in the stacks at unchanged addresses. Stack `moved` blocks
+  continue the roots' moves, so state at either earlier address plans a no-op move to
+  `module.stack.module.storage_account.*` or `module.stack.module.network.*`. Names,
+  arguments, outputs, and `prevent_destroy` settings do not change. Run `tofu init`
+  again in existing Azure working directories.
+- AWS stacks call the core modules `modules/aws/kms-key`, `modules/aws/s3-bucket`,
+  and `modules/aws/vpc`. The bootstrap and storage stacks no longer duplicate the
+  bucket and key, and the S3 module owns the `<name>-<account id>` naming rule. A
+  plan fails when that name exceeds 63 characters. Resources moved from
+  `module.stack.<address>` to `module.stack.module.<key|bucket|vpc>.<address>`, and
+  both KMS keys are now `aws_kms_key.this`. Stack `moved` blocks continue the roots'
+  moves, so state at either earlier address plans only moves. The workload storage
+  bucket gains `prevent_destroy`. Run `tofu init` again in existing AWS working directories.
 - The local catalog entry moved into the core module `modules/local/catalog`, which
   `stacks/local/foundation/catalog` calls as `module "catalog"`. Its address changed
   from `module.stack.terraform_data.catalog` to
@@ -36,13 +73,13 @@
 - `.github/CODEOWNERS` assigns the quality helper, tool pins, lint rules, CI, and
   Atlantis configuration to a policy team. With Code Owner review required, a PR
   that changes this policy cannot reach Atlantis apply without that team's approval.
+- GCP bucket and bootstrap state bucket plans fail when the deployment ID plus
+  project ID exceeds 63 characters. The GCS API previously rejected these at apply.
 - Security scans reject inline `trivy:ignore` and `tfsec:ignore` comments in source
   and saved-plan configuration. Trivy otherwise drops suppressed findings silently.
 - Azure storage account names that exceed 18 characters after hyphen removal now
   hash the full deployment ID. Shorter names do not change. Existing accounts with
   longer names plan a replacement, which `prevent_destroy` blocks.
-- GCP bucket and bootstrap state bucket plans fail when the deployment ID plus
-  project ID exceeds 63 characters. The GCS API previously rejected these at apply.
 - Native OpenTofu roots for all 30 live deployments. Ordinary init, plan, apply,
   output, and state operations no longer require repository Python.
 - Shared resources moved into `modules/<cloud>/<group>/<stack>`. Roots retain
@@ -63,28 +100,3 @@
   for dev, stage, and prod, plus a cloud-free local catalog.
 - Native-root migration, operating, security, and contribution guides in addition
   to English and Korean getting-started documentation.
-- AWS stacks call the core modules `modules/aws/kms-key`, `modules/aws/s3-bucket`,
-  and `modules/aws/vpc`. The bootstrap and storage stacks no longer duplicate the
-  bucket and key, and the S3 module owns the `<name>-<account id>` naming rule. A
-  plan fails when that name exceeds 63 characters. Resources moved from
-  `module.stack.<address>` to `module.stack.module.<key|bucket|vpc>.<address>`, and
-  both KMS keys are now `aws_kms_key.this`. Stack `moved` blocks continue the roots'
-  moves, so state at either earlier address plans only moves. The workload storage
-  bucket gains `prevent_destroy`. Run `tofu init` again in existing AWS working directories.
-- Azure storage accounts and their containers moved into the core module
-  `modules/azure/storage-account`, which `stacks/azure/bootstrap/state` and
-  `stacks/azure/storage/bucket` call as `module "storage_account"`. The Azure virtual
-  network, subnet, network security group, and association moved into
-  `modules/azure/network`, which `stacks/azure/network/core` calls as `module "network"`.
-  Resource groups stay in the stacks at unchanged addresses. Stack `moved` blocks
-  continue the roots' moves, so state at either earlier address plans a no-op move to
-  `module.stack.module.storage_account.*` or `module.stack.module.network.*`. Names,
-  arguments, outputs, and `prevent_destroy` settings do not change. Run `tofu init`
-  again in existing Azure working directories.
-- The GCP stacks call the core modules `modules/gcp/storage-bucket` as
-  `module "bucket"` and `modules/gcp/network` as `module "network"`. Their resources
-  moved from `module.stack.<resource>` to `module.stack.module.bucket.<resource>` and
-  `module.stack.module.network.<resource>`. `moved` blocks in each stack continue the
-  roots' moves, and planned attributes do not change. The bucket name-length tests
-  now run in the core module. The workload bucket in `gcp/storage/bucket` now uses
-  `prevent_destroy`. Run `tofu init` again in existing GCP working directories.

@@ -38,8 +38,8 @@ AWS provider `default_tags` and GCP provider `default_labels` receive the common
 map where supported. Azure resources receive `tags` explicitly. AWS `Name` tags
 belong to individual resources, so subnets can use `${var.context.id}-private`
 without sharing the VPC's display name. For GCP, these are labels, not Resource
-Manager tags or Compute Engine network tags. Cloud-specific naming adapters
-(for example Azure storage-account names without hyphens) remain in each stack.
+Manager tags or Compute Engine network tags. Cloud-specific name rules, such as
+Azure storage account names without hyphens, live in the core module that owns the resource.
 
 See [the context guide](../../docs/context.md) for resource examples and
 environment configuration.
