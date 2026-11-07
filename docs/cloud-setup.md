@@ -100,6 +100,11 @@ for a branch push presents `repo:<owner>/<repo>:ref:refs/heads/<branch>`. The ro
 listed in its `subjects` and `subject_patterns`. Restrict which branches can deploy
 to a GitHub environment with its deployment branch rules.
 
+To scan an account with Prowler, set `audit_subjects` in its identity root. The root
+then adds a read-only `<deployment name>-audit` role. The
+[Prowler integration](../integrations/prowler/README.md) has the role's permissions
+and a workflow example.
+
 ## Azure
 
 1. Register the required resource providers in the target subscription outside

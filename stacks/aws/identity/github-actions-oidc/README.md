@@ -11,6 +11,11 @@ called as `module "federation"`. The stack names each role
 `starter-github-dev-deploy`. Roles of different environments therefore keep
 distinct names when they share an account.
 
+Set `audit_subjects` to add `<context.id>-audit`, a read-only role for Prowler account
+scans that trusts only those exact subjects. `audit.tf` holds its managed policies and
+inline additions. The list defaults to empty, which creates no audit role. See the
+[Prowler integration](../../../../integrations/prowler/README.md).
+
 The OIDC provider is account-global. Set `create_oidc_provider = true` in exactly
 one deployment per AWS account and `false` in every other deployment that targets
 the same account. Apply the deployment that creates the provider first.

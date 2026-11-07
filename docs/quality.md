@@ -90,3 +90,6 @@ gitleaks dir . --redact --no-banner
 ```
 
 A clean scan does not establish account security or organization-specific compliance.
+These checks read source and plans, not cloud accounts. The optional
+[Prowler integration](../integrations/prowler/README.md) scans a live AWS account
+from GitHub Actions and reports findings without blocking.

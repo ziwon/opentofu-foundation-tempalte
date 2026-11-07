@@ -35,7 +35,9 @@ access-controlled backup independent of the storage it manages.
 ## Verification scope
 
 Credential-free CI checks configuration and mocked plans. It does not audit cloud
-accounts or establish production compliance. Adopters own organization-specific
+accounts or establish production compliance. The optional
+[Prowler integration](integrations/prowler/README.md) audits a live AWS account, and
+its reports need the same care as state. Adopters own organization-specific
 IAM, logging, key management, backups, approval policy, and recovery exercises.
 
 The quality helper blocks HIGH and CRITICAL Trivy findings and fails on missing

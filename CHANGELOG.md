@@ -49,3 +49,9 @@ First release of the template.
   subjects and session limits outside 1 to 12 hours. The
   `live/<environment>/aws/identity/github-actions-oidc` roots name each role
   `<deployment name>-<key>`.
+- Setting `audit_subjects` in an AWS identity root adds `<deployment name>-audit`, a
+  read-only role for Prowler that trusts only those exact subjects. It attaches
+  `SecurityAudit`, `ViewOnlyAccess`, and Prowler's read-only additions. The committed
+  inputs create no audit role. `integrations/prowler` pins Prowler 5.48.0 in
+  `mise.toml` and has a GitHub Actions workflow example that scans an account and
+  uploads reports with 7-day retention. Its findings are advisory.
