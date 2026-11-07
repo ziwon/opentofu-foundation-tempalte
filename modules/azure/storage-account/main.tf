@@ -1,6 +1,6 @@
 locals {
   compact_id = replace(var.name_base, "-", "")
-  # Keep existing names when nothing is truncated; otherwise hash the full ID so environments stay distinct.
+  # An untruncated ID is already distinct per environment. A truncated one may not be, so hash the full ID.
   account_suffix = sha1(length(local.compact_id) > 18 ? "${var.subscription_id}/${var.name_base}" : var.subscription_id)
 }
 

@@ -8,10 +8,30 @@ from pathlib import Path
 import re
 import sys
 
-from addresses import module_directories
-
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = Path("integrations/atlantis/atlantis.yaml.example")
+MODULE = re.compile(r'^\s*module\s+"([^"]+)"\s*\{(.*?)^\}', re.MULTILINE | re.DOTALL)
+SOURCE = re.compile(r'^\s*source\s*=\s*"([^"]*)"', re.MULTILINE)
+
+
+def module_sources(directory: Path) -> dict[str, str]:
+    """Return each module call's source from blocks that close at column 0, as `tofu fmt` writes them."""
+    files = sorted(path for pattern in ("*.tf", "*.tofu") for path in directory.glob(pattern) if path.is_file())
+    text = "\n".join(path.read_text() for path in files)
+    return {name: source.group(1) for name, body in MODULE.findall(text) if (source := SOURCE.search(body))}
+
+
+def module_directories(directory: Path) -> set[Path]:
+    """Return every local module directory a root reaches, directly or through other modules."""
+    reached, pending = set(), [directory]
+    while pending:
+        current = pending.pop()
+        for source in module_sources(current).values():
+            child = Path(os.path.normpath(current / source))
+            if source.startswith(("./", "../")) and child not in reached:
+                reached.add(child)
+                pending.append(child)
+    return reached
 
 
 def configuration(root: Path, names=(), autoplan=False) -> dict:
@@ -33,10 +53,7 @@ def configuration(root: Path, names=(), autoplan=False) -> dict:
         if not names and re.search(r'backend\s+"local"', (directory / "backend.tf").read_text()):
             continue
         repository = os.path.relpath(root, directory)
-        try:
-            modules = sorted(module.relative_to(root.resolve()).as_posix() for module in module_directories(directory))
-        except ValueError as error:
-            raise ValueError(f"{error}: {name}") from None
+        modules = sorted(Path(os.path.relpath(module, root)).as_posix() for module in module_directories(directory))
         projects.append({
             "name": name,
             "dir": directory.relative_to(root).as_posix(),

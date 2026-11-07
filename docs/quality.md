@@ -61,7 +61,6 @@ See [deployment policy](../SECURITY.md).
 ```sh
 python3 tools/quality_smoke.py
 python3 tools/smoke.py
-python3 tools/migration_smoke.py
 ```
 
 The quality fixture tests safe and unsafe AWS source and saved plans with fake
@@ -70,12 +69,8 @@ It checks that open SSH fails, that a saved unsafe plan still fails after source
 fixed, that corrupt plans fail, and that invalid lint input fails.
 
 The local lifecycle fixture applies and destroys only disposable `terraform_data`
-resources. The migration fixture starts from the [frozen legacy catalog](../tests/fixtures/legacy-local/README.md)
-and supplies the same frozen inputs to the old and current HCL. It checks that
-dev and prod keep their resource IDs, typed outputs, and state paths while recording address moves with no resource changes. Dev moves from the
-shared-stack address. Prod first moves to the native-root address `module.stack.terraform_data.catalog`,
-so the check also covers the stack's move into its core module. It works in a new
-repository created from this template without the original Git history.
+resources in dev, stage, and prod. It checks outputs, state isolation, and context
+tag validation.
 
 Gitleaks remains a separate secret scan:
 
