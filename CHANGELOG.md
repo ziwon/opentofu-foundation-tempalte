@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Trivy scans use a new temporary cache and module directory. A checks bundle
+  committed under `.infra/` can no longer replace the bundled checks.
 - `.github/CODEOWNERS` assigns the quality helper, tool pins, lint rules, CI, and
   Atlantis configuration to a policy team. With Code Owner review required, a PR
   that changes this policy cannot reach Atlantis apply without that team's approval.
