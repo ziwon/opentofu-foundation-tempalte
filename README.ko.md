@@ -75,7 +75,9 @@ tofu apply destroy.tfplan
 3. [bootstrap](docs/bootstrap.md)으로 상태 저장소를 만들거나 기존 저장소를 사용합니다.
 4. `backend.tf`의 저장소 예제 값을 바꿉니다. 명시적인 key나 prefix는 유지합니다.
 5. 클라우드의 기본 인증 방식을 사용합니다. 키, 토큰, 비밀번호는 Git에 넣지 않습니다.
-6. 검사를 실행하고 backend를 초기화한 뒤 저장된 plan을 검토합니다. 승인된 절차로 적용합니다.
+6. `just preflight dev/aws/network/core`로 현재 로그인이 루트와 맞는지 확인합니다.
+   읽기 전용 선택 검사이며, 네이티브 `tofu` 명령에는 필요하지 않습니다.
+7. 검사를 실행하고 backend를 초기화한 뒤 저장된 plan을 검토합니다. 승인된 절차로 적용합니다.
 
 ```sh
 tofu -chdir=live/dev/aws/network/core init -lockfile=readonly

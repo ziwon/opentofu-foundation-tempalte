@@ -1,5 +1,27 @@
 # Operate a deployment
 
+## Check your identity before planning
+
+Before you plan a cloud root, confirm that your terminal is logged in to the
+account, subscription, or project that the root expects:
+
+```sh
+just preflight dev/aws/network/core
+```
+
+`just preflight` runs `python3 tools/preflight.py dev/aws/network/core`. The tool
+reads the root's `terraform.tfvars.json` and `backend.tf`, then asks the installed
+`aws`, `az`, or `gcloud` CLI for the active identity. It prints one line for each
+mismatch, with the active value and the value the root expects, and exits with code 1.
+It also fails when the root still has placeholder values such as `000000000000` or
+`REPLACE_ME_STATE_BUCKET`, when the CLI is not installed, or when you are not logged in.
+Local roots have nothing to check. [Cloud setup](cloud-setup.md#check-your-identity-before-planning)
+lists the values it compares for each cloud.
+
+The preflight reads files and CLI output only. It never runs `tofu`, so it does not
+initialize, plan, or touch state. The `plan` and `apply` recipes do not run it, so the
+native commands below keep working without Python. Run it yourself before you plan.
+
 ## Plan and apply a normal change
 
 Edit a root's inputs or its stack. Run the relevant checks, initialize
@@ -22,6 +44,9 @@ Applying a saved plan has no confirmation prompt. Native commands run no
 approval checks or automatic security scans. Use [trusted automation](atlantis.md) when those scans and approvals
 must be enforced. The [quality helper](quality.md) can also scan a local source tree
 and saved plan explicitly.
+
+To estimate the cost of a saved plan, see the optional
+[Infracost integration](../integrations/infracost/README.md). Its estimates are advisory.
 
 Use the default workspace. Keep credentials in native cloud authentication, and
 avoid hidden variable or CLI overrides when working from reviewed inputs.

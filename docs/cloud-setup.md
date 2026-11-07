@@ -60,6 +60,9 @@ for the trust policy and the subject forms it accepts.
    `REPLACE_ME_GITHUB_REPOSITORY` in each role's `subjects`, and set `aws_account_id`.
 2. Give each role only the permissions its jobs need, through `managed_policy_arns`,
    `inline_policy_json`, or both. The example `deploy` role has no permissions.
+   The Trivy source and saved-plan scans do not judge what a role may do, and an
+   `"Action": "*"` inline policy passes both. Review role permissions in the PR,
+   and set `permissions_boundary` to cap what a role can grant itself.
 3. Set `create_oidc_provider` to `true` in exactly one root per AWS account. An
    account holds one provider for `token.actions.githubusercontent.com`, so set
    `false` in every other root that targets the same account, and apply the root
@@ -149,6 +152,30 @@ records subnet flow logs, and denies unmatched ingress. Define narrower allow
 rules for workloads before using it. The storage bucket uses uniform IAM access,
 public-access prevention, cloud-managed encryption, and versioning. Add object
 retention, customer-managed encryption, and lifecycle policies as needed.
+
+## Check your identity before planning
+
+After you log in and replace the placeholders, run the read-only preflight for the
+root you are about to plan:
+
+```sh
+just preflight dev/aws/network/core
+```
+
+The preflight compares the active CLI identity with the root's `terraform.tfvars.json`:
+
+| Cloud | Root value | Active value |
+| --- | --- | --- |
+| AWS | `aws_account_id` and `region` | `Account` from `aws sts get-caller-identity`, and `AWS_REGION`, `AWS_DEFAULT_REGION`, or `aws configure get region` |
+| Azure | `subscription_id` | `id` from `az account show` |
+| GCP | `project_id` | `gcloud config get-value project`, with an active account in `gcloud auth list` |
+
+It fails on any placeholder in `terraform.tfvars.json` or `backend.tf`. It does not
+compare your identity with the backend's `allowed_account_ids` or `subscription_id`,
+because state can live in a different account or subscription than the workload.
+The preflight prints account, subscription, and project IDs only. It never prints
+credentials or tokens. See [operations](operations.md#check-your-identity-before-planning)
+for when to run it.
 
 ## Costs and production rollout
 

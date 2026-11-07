@@ -34,8 +34,14 @@ First release of the template.
   `mise.toml`, and optional `just` aliases for native commands.
 - The check tools use `TF_PLUGIN_CACHE_DIR` and `TFLINT_PLUGIN_DIR` when they are set,
   so provider and plugin caches can live outside the checkout.
+- An optional `just cost <deployment>` recipe prices a saved plan with Infracost.
+  `integrations/infracost/mise.toml` pins the CLI, and no check or CI job uses it.
 - English and Korean getting-started guides, plus architecture, cloud setup,
   bootstrap, operations, quality, Atlantis, security, and contribution guides.
+- `just preflight <deployment>` runs `tools/preflight.py`, a read-only check that the
+  active `aws`, `az`, or `gcloud` identity matches the root's account, subscription,
+  project, and AWS region. It fails on committed placeholders, a missing CLI, or a
+  missing login. The `plan` and `apply` recipes do not run it.
 - `modules/aws/github-actions-oidc` creates or looks up the account's GitHub Actions
   OIDC provider and IAM roles that trust exact `sub` claims and the
   `sts.amazonaws.com` audience with `StringEquals`. Prefix patterns are an explicit

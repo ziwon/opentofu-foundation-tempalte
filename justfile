@@ -6,11 +6,18 @@ default:
 init deployment:
     tofu -chdir="live/$1" init
 
+preflight deployment:
+    python3 tools/preflight.py "$1"
+
 plan deployment:
     tofu -chdir="live/$1" plan -out=plan.tfplan
 
 destroy-plan deployment:
     tofu -chdir="live/$1" plan -destroy -out=plan.tfplan
+
+cost deployment:
+    umask 077 && mkdir -p ".infra/cost/$1" && tofu -chdir="live/$1" show -json plan.tfplan > ".infra/cost/$1/plan.json"
+    infracost breakdown --path ".infra/cost/$1/plan.json"
 
 apply deployment:
     tofu -chdir="live/$1" apply plan.tfplan
