@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- The local catalog entry moved into the core module `modules/local/catalog`, which
+  `stacks/local/foundation/catalog` calls as `module "catalog"`. Its address changed
+  from `module.stack.terraform_data.catalog` to
+  `module.stack.module.catalog.terraform_data.catalog`. A `moved` block in the stack
+  continues the root's move, so state at either earlier address plans a no-op move.
+  `tools/migration_smoke.py` now proves both starting states with OpenTofu. Run
+  `tofu init` again in existing local working directories.
 - Stacks moved from `modules/<cloud>/<group>/<stack>` to `stacks/<cloud>/<group>/<stack>`.
   A stack is the purpose-specific composition that a root calls as `module "stack"`.
   `modules/` now holds reusable core building blocks and `modules/context`. Resource

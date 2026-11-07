@@ -89,6 +89,37 @@ configure no providers or backends, and take only the inputs they consume. Call 
 core module from a stack with a local source such as
 `source = "../../../../modules/aws/<name>"`.
 
+`modules/local/catalog` is a working example. It owns the local catalog's
+`terraform_data.catalog` and takes `name`, `tags`, and `description`. The stack
+`stacks/local/foundation/catalog` calls it and keeps its own outputs:
+
+```hcl
+module "catalog" {
+  source      = "../../../../modules/local/catalog"
+  name        = var.context.id
+  tags        = var.context.tags
+  description = var.description
+}
+```
+
+Moving a resource from a stack into a core module changes its address. Add the
+`moved` block to the stack, in `migrations.tf`, and leave the root's moves unchanged:
+
+```hcl
+moved {
+  from = terraform_data.catalog
+  to   = module.catalog.terraform_data.catalog
+}
+```
+
+State at the shared-root address `terraform_data.catalog` follows the root's move and
+then the stack's move. State at `module.stack.terraform_data.catalog` follows only the
+stack's move. Both end at `module.stack.module.catalog.terraform_data.catalog`.
+`python3 tools/migration_smoke.py` applies both starting states with OpenTofu and
+requires a no-op move. Keep the resource's arguments and their types unchanged when
+you move it. A value of a different type, such as a map where state recorded an
+object, plans an update even when the JSON looks equal.
+
 Add mocked plan-only tests under the module's `tests/` directory. `tools/check.py`
 runs them with the provider lock of any dev root for the same cloud. Regenerate the
 Atlantis project example afterward. Each project watches every local module that

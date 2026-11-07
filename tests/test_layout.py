@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def copy_local_template(root):
-    for name in ("live/dev/local", "stacks/local", "modules/context"):
+    for name in ("live/dev/local", "stacks/local", "modules/context", "modules/local"):
         shutil.copytree(ROOT / name, root / name,
                         ignore=shutil.ignore_patterns(".terraform", "*.md", "*.tfplan"))
     shutil.copyfile(ROOT / "mise.toml", root / "mise.toml")
@@ -118,19 +118,11 @@ class AddressContinuityTests(unittest.TestCase):
                 self.assertRejected(fragment, "dev/local/foundation/catalog")
                 path.write_text(original)
 
-    def test_nested_module_move_chains_from_legacy_address(self):
-        entry = self.module / "entry"
-        entry.mkdir()
-        (entry / "main.tf").write_text(
-            'resource "terraform_data" "catalog" {\n  input = var.input\n}\n\nvariable "input" {}\n')
-        (self.module / "main.tf").write_text(
-            'module "entry" {\n  source = "./entry"\n  input = {\n    name        = var.context.id\n'
-            '    tags        = merge(var.context.tags, {})\n    description = var.description\n  }\n}\n')
-        self.assertRejected("terraform_data.catalog", "module.stack.terraform_data.catalog")
-        (self.module / "migrations.tf").write_text(
-            "moved {\n  from = terraform_data.catalog\n  to   = module.entry.terraform_data.catalog\n}\n")
+    def test_core_module_move_continues_the_root_move(self):
         result = check_layout(self.root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        (self.module / "migrations.tf").unlink()
+        self.assertRejected("terraform_data.catalog", "module.stack.terraform_data.catalog")
 
     def test_renamed_stack_cannot_skip_legacy_addresses(self):
         with tempfile.TemporaryDirectory() as temporary:

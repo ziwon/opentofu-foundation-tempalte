@@ -34,7 +34,7 @@ If you request `-detailed-exitcode` for planning, exit code 2 means changes are 
 ```sh
 tofu -chdir=live/dev/local/foundation/catalog output
 tofu -chdir=live/dev/local/foundation/catalog state list
-tofu -chdir=live/dev/local/foundation/catalog state show module.stack.terraform_data.catalog
+tofu -chdir=live/dev/local/foundation/catalog state show module.stack.module.catalog.terraform_data.catalog
 ```
 
 Initialize the root before reading its state. Quote addresses with map keys,
