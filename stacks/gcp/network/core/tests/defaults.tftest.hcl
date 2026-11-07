@@ -15,4 +15,8 @@ run "deployment_network" {
     condition     = output.deployment_name == var.context.id
     error_message = "Export the deployment name."
   }
+  assert {
+    condition     = module.network.subnet_cidr == "10.10.1.0/24"
+    error_message = "The private subnet must use subnet_cidr."
+  }
 }

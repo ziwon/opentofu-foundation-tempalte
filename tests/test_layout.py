@@ -118,6 +118,20 @@ class AddressContinuityTests(unittest.TestCase):
                 self.assertRejected(fragment, "dev/local/foundation/catalog")
                 path.write_text(original)
 
+    def test_root_must_call_its_stack_not_mention_it(self):
+        shadow = self.root / "vendor/local/foundation/shadow"
+        shutil.copytree(self.module, shadow)
+        main = self.live / "main.tf"
+        main.write_text('# source = "../../../../../stacks/local/foundation/catalog"\n' + main.read_text().replace(
+            "stacks/local/foundation/catalog", "vendor/local/foundation/shadow"))
+        self.assertRejected("Root does not call its stack", "dev/local/foundation/catalog")
+
+    def test_stack_without_main_tf_is_discovered(self):
+        orphan = self.root / "stacks/local/foundation/orphan"
+        orphan.mkdir()
+        (orphan / "resources.tf").write_text('resource "terraform_data" "orphan" {}\n')
+        self.assertRejected("stacks/local/foundation/orphan")
+
     def test_core_module_move_continues_the_root_move(self):
         result = check_layout(self.root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

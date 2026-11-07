@@ -26,4 +26,8 @@ run "private_network" {
     condition     = azurerm_resource_group.this.name == "starter-fixture-dev-rg" && azurerm_resource_group.this.location == var.location && azurerm_resource_group.this.tags == tomap(var.context.tags)
     error_message = "The resource group must use the deployment name, location, and context tags."
   }
+  assert {
+    condition     = module.network.network_cidr == "10.10.0.0/16" && module.network.subnet_cidr == "10.10.1.0/24"
+    error_message = "The network and private subnet must use network_cidr and subnet_cidr."
+  }
 }

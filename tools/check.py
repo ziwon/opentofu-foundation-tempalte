@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import tempfile
 
-from check_layout import check
+from check_layout import check, stack_directories
 from quality import lint, security
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,9 +42,9 @@ def main():
         ignore = shutil.ignore_patterns(".terraform", LOCK)
         shutil.copytree(ROOT / "modules", tree / "modules", ignore=ignore)
         units = []
-        for source in sorted((ROOT / "stacks").glob("*/*/*/main.tf")):
-            stack = source.parent.relative_to(ROOT / "stacks")
-            shutil.copytree(source.parent, tree / "stacks" / stack, ignore=ignore)
+        for directory in sorted(stack_directories(ROOT)):
+            stack = directory.relative_to(ROOT / "stacks")
+            shutil.copytree(directory, tree / "stacks" / stack, ignore=ignore)
             units.append((Path("stacks") / stack, ROOT / "live/dev" / stack / LOCK))
         for tests in sorted((ROOT / "modules").rglob("tests")):
             module = tests.parent.relative_to(ROOT)

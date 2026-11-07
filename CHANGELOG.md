@@ -5,8 +5,15 @@
 - The Atlantis trust model now has one detailed home in `docs/atlantis.md`.
   `SECURITY.md`, `docs/quality.md`, and the integration reference link to it. CI
   caches `.infra/tflint-plugins` keyed on `.tflint.hcl` and passes the read-only
-  GitHub token to the migration and quality fixtures. GitHub API 504 errors during
+  GitHub token to the quality fixture. GitHub API 504 errors during
   TFLint plugin installation failed two earlier runs.
+- The layout check reads each root's module calls and requires `module "stack"` to use
+  the exact `../../../../../stacks/<cloud>/<group>/<stack>` source, so a comment that
+  names the path no longer hides a call to another directory. The layout check and
+  `tools/check.py` discover a stack by any `.tf` file, not only `main.tf`. The core
+  network modules export `subnet_cidr`, and the AWS and Azure modules also export
+  `network_cidr`. Stack tests now pin the network CIDR wiring and the GCP workload
+  bucket's absent soft delete policy. Plans do not change.
 - The GCP stacks call the core modules `modules/gcp/storage-bucket` as
   `module "bucket"` and `modules/gcp/network` as `module "network"`. Their resources
   moved from `module.stack.<resource>` to `module.stack.module.bucket.<resource>` and
