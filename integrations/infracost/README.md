@@ -18,8 +18,8 @@ mise trust integrations/infracost/mise.toml
 mise -C integrations/infracost install
 ```
 
-Infracost 2.x is a separate CLI that scans source code and logs in to an organization.
-It has no `breakdown` command, so this integration keeps the 0.10 line.
+The recipe uses the 0.10 CLI's `breakdown` command on a saved plan. Check that a
+newer Infracost release still supports `breakdown --path <plan.json>` before you raise the pin.
 
 ## Provide the API key
 
