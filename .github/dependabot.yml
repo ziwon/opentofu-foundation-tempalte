@@ -36,6 +36,9 @@ updates:
       - /live/stage/gcp/bootstrap/state
       - /live/stage/gcp/network/core
       - /live/stage/gcp/storage/bucket
+      - /modules/aws/kms-key
+      - /modules/aws/s3-bucket
+      - /modules/aws/vpc
       - /stacks/aws/bootstrap/state
       - /stacks/aws/network/core
       - /stacks/aws/storage/bucket

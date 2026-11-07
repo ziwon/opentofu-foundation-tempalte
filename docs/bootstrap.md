@@ -7,7 +7,7 @@ roots. Initialization connects to a backend and never provisions storage by itse
 
 | Cloud | Created resources and protections |
 | --- | --- |
-| AWS | S3 bucket, versioning, public-access blocking, ownership enforcement, TLS policy, rotating customer-managed KMS key, S3 lock-file settings |
+| AWS | S3 bucket, versioning, public-access blocking, ownership enforcement, TLS policy (`modules/aws/s3-bucket`), rotating customer-managed KMS key (`modules/aws/kms-key`), S3 lock-file settings |
 | Azure | Resource group, ZRS storage account, private Blob container, Entra authentication, network default deny, versioning, 30-day blob and container soft deletion |
 | GCP | GCS bucket, uniform IAM access, public-access prevention, versioning, 30-day soft deletion |
 
