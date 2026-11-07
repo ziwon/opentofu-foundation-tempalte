@@ -12,7 +12,8 @@ roots. Initialization connects to a backend and never provisions storage by itse
 | GCP | GCS bucket, uniform IAM access, public-access prevention, versioning, 30-day soft deletion |
 
 AWS bucket and key, Azure resource group, account, and container, and the GCP
-bucket use `prevent_destroy`. These protections depend on the configuration
+bucket use `prevent_destroy`. The GCP bucket comes from `modules/gcp/storage-bucket`,
+which the workload bucket shares. These protections depend on the configuration
 remaining present. Cloud permissions and recovery controls must enforce retention.
 Bootstrap roots are excluded from Atlantis. Retire state storage only through a
 separately reviewed change after all consumers have moved to another backend.

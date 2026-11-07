@@ -203,6 +203,25 @@ address, such as `azurerm_storage_account.this`, or at the native-root address, 
 changes. Storage account names, container names, and every other argument are
 unchanged. Run `tofu init` again before you plan, then confirm that the plan reports
 only these moves.
+### GCP
+
+The GCP stacks call `modules/gcp/storage-bucket` as `module "bucket"` and
+`modules/gcp/network` as `module "network"`. Each stack's `migrations.tf` moves its
+resources, so state at the shared-stack or native-root address reaches:
+
+| Stack | Current address |
+| --- | --- |
+| `gcp/bootstrap/state` | `module.stack.module.bucket.google_storage_bucket.this` |
+| `gcp/storage/bucket` | `module.stack.module.bucket.google_storage_bucket.this` |
+| `gcp/network/core` | `module.stack.module.network.google_compute_network.this` |
+| `gcp/network/core` | `module.stack.module.network.google_compute_subnetwork.private` |
+| `gcp/network/core` | `module.stack.module.network.google_compute_firewall.deny_ingress` |
+
+Run `tofu init` again, then expect a plan that reports only these moves. The
+workload bucket now uses `prevent_destroy`, as the bootstrap bucket already did, so
+a plan that would replace it fails instead. `python3 tools/check_layout.py` proves
+that every earlier address reaches one of these resources. No automated check
+applies these moves, because that needs a cloud account. Review the saved plan.
 
 ## Update scripts and policy
 

@@ -5,35 +5,14 @@ variables {
 }
 
 mock_provider "google" {}
-run "private_versioned_storage" {
+run "workload_bucket" {
   command = plan
   assert {
-    condition     = google_storage_bucket.this.uniform_bucket_level_access && google_storage_bucket.this.public_access_prevention == "enforced"
-    error_message = "Public access must be prevented and access controlled by IAM."
+    condition     = output.resource_id == "starter-fixture-dev-example-project" && output.resource_id == module.bucket.name
+    error_message = "Export the core module's bucket name, derived from the deployment and project."
   }
   assert {
-    condition     = google_storage_bucket.this.versioning[0].enabled && !google_storage_bucket.this.force_destroy
-    error_message = "Retain object versions and refuse deletion of nonempty buckets."
+    condition     = output.deployment_name == var.context.id
+    error_message = "Export the deployment name."
   }
-}
-
-run "bucket_name_at_limit" {
-  command = plan
-  variables {
-    project_id = "example-project-abcdefghijklmn"
-    context    = { "id" : "starter-fixture-development-0001", "tags" : {} }
-  }
-  assert {
-    condition     = length(google_storage_bucket.this.name) == 63
-    error_message = "A 63-character bucket name must plan."
-  }
-}
-
-run "bucket_name_over_limit" {
-  command = plan
-  variables {
-    project_id = "example-project-abcdefghijklmn"
-    context    = { "id" : "starter-fixture-development-00001", "tags" : {} }
-  }
-  expect_failures = [google_storage_bucket.this]
 }

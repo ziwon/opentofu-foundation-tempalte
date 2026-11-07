@@ -73,3 +73,10 @@
   `module.stack.module.storage_account.*` or `module.stack.module.network.*`. Names,
   arguments, outputs, and `prevent_destroy` settings do not change. Run `tofu init`
   again in existing Azure working directories.
+- The GCP stacks call the core modules `modules/gcp/storage-bucket` as
+  `module "bucket"` and `modules/gcp/network` as `module "network"`. Their resources
+  moved from `module.stack.<resource>` to `module.stack.module.bucket.<resource>` and
+  `module.stack.module.network.<resource>`. `moved` blocks in each stack continue the
+  roots' moves, and planned attributes do not change. The bucket name-length tests
+  now run in the core module. The workload bucket in `gcp/storage/bucket` now uses
+  `prevent_destroy`. Run `tofu init` again in existing GCP working directories.

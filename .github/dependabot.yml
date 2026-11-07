@@ -41,6 +41,8 @@ updates:
       - /modules/aws/vpc
       - /modules/azure/network
       - /modules/azure/storage-account
+      - /modules/gcp/network
+      - /modules/gcp/storage-bucket
       - /stacks/aws/bootstrap/state
       - /stacks/aws/network/core
       - /stacks/aws/storage/bucket

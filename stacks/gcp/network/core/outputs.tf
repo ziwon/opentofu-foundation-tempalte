@@ -1,6 +1,6 @@
 output "resource_id" {
   description = "Provider identifier for the stack's primary resource."
-  value       = google_compute_network.this.id
+  value       = module.network.network_id
 }
 output "deployment_name" {
   description = "Stable resource name for this deployment."
