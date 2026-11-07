@@ -12,6 +12,10 @@ run "private_versioned_storage" {
     error_message = "Generated backend settings must name the state bucket and its encryption key."
   }
   assert {
+    condition     = module.bucket.kms_key_arn == module.key.arn
+    error_message = "The bucket must encrypt objects with this stack's own customer-managed key."
+  }
+  assert {
     condition     = output.backend_config.encrypt && output.backend_config.use_lockfile && output.backend_config.allowed_account_ids == [var.aws_account_id] && output.backend_config.region == var.region
     error_message = "Generated backend settings must require encryption, native locking, the expected account, and the region."
   }
