@@ -63,3 +63,13 @@
   both KMS keys are now `aws_kms_key.this`. Stack `moved` blocks continue the roots'
   moves, so state at either earlier address plans only moves. The workload storage
   bucket gains `prevent_destroy`. Run `tofu init` again in existing AWS working directories.
+- Azure storage accounts and their containers moved into the core module
+  `modules/azure/storage-account`, which `stacks/azure/bootstrap/state` and
+  `stacks/azure/storage/bucket` call as `module "storage_account"`. The Azure virtual
+  network, subnet, network security group, and association moved into
+  `modules/azure/network`, which `stacks/azure/network/core` calls as `module "network"`.
+  Resource groups stay in the stacks at unchanged addresses. Stack `moved` blocks
+  continue the roots' moves, so state at either earlier address plans a no-op move to
+  `module.stack.module.storage_account.*` or `module.stack.module.network.*`. Names,
+  arguments, outputs, and `prevent_destroy` settings do not change. Run `tofu init`
+  again in existing Azure working directories.

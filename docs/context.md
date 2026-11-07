@@ -31,10 +31,11 @@ transformations stay with those resources.
 AWS S3 bucket names are the ID plus the account ID. `modules/aws/s3-bucket` builds
 the name, and a plan fails if it exceeds 63 characters.
 
-Azure storage account names allow 24 lowercase letters and digits. The modules
-remove hyphens from the ID and keep its first 18 characters. If the ID fits, the
-suffix is 6 characters of the subscription ID hash. If it is truncated, the suffix
-hashes the subscription and the full ID, so environments in one subscription stay distinct.
+Azure storage account names allow 24 lowercase letters and digits. The core module
+`modules/azure/storage-account` receives the ID as `name_base`. It removes hyphens
+and keeps the first 18 characters. If the ID fits, the suffix is 6 characters of
+the subscription ID hash. If it is truncated, the suffix hashes the subscription
+and the full ID, so environments in one subscription stay distinct.
 
 GCS bucket names are the ID plus the project ID, and a plan fails if the total exceeds 63 characters.
 
@@ -60,8 +61,8 @@ resource "aws_vpc" "this" {
 }
 ```
 
-Azure resources receive `var.context.tags`. GCP provider defaults and supported
-resource labels use the common map. GCP Compute Engine network tags are a different feature.
+Azure stacks pass `var.context.tags` to their resource groups and to the `tags`
+input of their core modules. GCP provider defaults and supported resource labels use the common map. GCP Compute Engine network tags are a different feature.
 
 ## Add environment metadata
 

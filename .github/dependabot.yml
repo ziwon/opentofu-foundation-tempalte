@@ -39,6 +39,8 @@ updates:
       - /modules/aws/kms-key
       - /modules/aws/s3-bucket
       - /modules/aws/vpc
+      - /modules/azure/network
+      - /modules/azure/storage-account
       - /stacks/aws/bootstrap/state
       - /stacks/aws/network/core
       - /stacks/aws/storage/bucket
