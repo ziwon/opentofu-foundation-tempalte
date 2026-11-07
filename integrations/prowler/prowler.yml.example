@@ -1,0 +1,54 @@
+# Copy to .github/workflows/prowler.yml. Setup and report handling are in
+# integrations/prowler/README.md.
+name: Prowler AWS scan
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: prowler-aws-scan
+  cancel-in-progress: false
+
+env:
+  AWS_ROLE_ARN: arn:aws:iam::000000000000:role/starter-github-prod-audit
+  AWS_REGION: us-east-1
+
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    environment: security-audit
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          version: '2026.7.14'
+          working_directory: integrations/prowler
+          install_args: pipx:prowler
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-duration-seconds: 7200
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Scan the account
+        working-directory: integrations/prowler
+        run: >-
+          prowler aws --no-banner --ignore-exit-code-3
+          --output-formats csv html json-ocsf
+          --output-directory "$RUNNER_TEMP/prowler"
+      - name: Upload the reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: prowler-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/prowler/
+          retention-days: 7
+          if-no-files-found: warn

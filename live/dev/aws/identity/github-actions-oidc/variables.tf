@@ -51,3 +51,9 @@ variable "roles" {
   }))
   nullable = false
 }
+
+variable "audit_subjects" {
+  description = "Exact GitHub Actions subjects that may assume <deployment name>-audit, a read-only role for Prowler account scans. Empty creates no audit role."
+  type        = set(string)
+  nullable    = false
+}
