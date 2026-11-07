@@ -19,7 +19,7 @@ AWS 0.50.0, AzureRM 0.33.0, and Google 0.41.0 linter plugins.
 
 ## Acceptance criteria
 
-Each of the 30 live leaves must initialize and validate as a native root.
+Each of the 33 live leaves must initialize and validate as a native root.
 Stacks and core modules must have no provider configuration or backend.
 Root locks must select providers under explicit `registry.opentofu.org` addresses.
 Mock tests must cover cloud resource protections and meaningful environment inputs.

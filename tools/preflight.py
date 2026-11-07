@@ -59,13 +59,23 @@ ACTIVE = {"aws": aws, "azure": azure, "gcp": gcp}
 
 
 def placeholder(value):
-    return isinstance(value, str) and (value.startswith("REPLACE_ME") or value in PLACEHOLDERS)
+    return isinstance(value, str) and ("REPLACE_ME" in value or value in PLACEHOLDERS)
+
+
+def leaves(value, path):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield from leaves(item, f"{path}.{key}" if path else key)
+    elif isinstance(value, list):
+        for item in value:
+            yield from leaves(item, path)
+    else:
+        yield path, value
 
 
 def unconfigured(directory, values, keys):
     found = [f"terraform.tfvars.json has no {key}" for key in keys if key not in values]
-    found += [f"terraform.tfvars.json {key} is {item}" for key, value in values.items()
-              for item in (value if isinstance(value, list) else [value]) if placeholder(item)]
+    found += [f"terraform.tfvars.json {path} is {item}" for path, item in leaves(values, "") if placeholder(item)]
     for line in (directory / "backend.tf").read_text().splitlines():
         if attribute := re.match(r"\s*(\w+)\s*=(.*)", line):
             found += [f"backend.tf {attribute[1]} is {item}"

@@ -148,6 +148,17 @@ class PreflightTests(unittest.TestCase):
         (directory / "terraform.tfvars.json").write_text("{not json")
         self.assertFails(self.preflight(AWS, aws()), AWS, "terraform.tfvars.json")
 
+    def test_nested_placeholders_fail(self):
+        deployment = "dev/aws/identity/github-actions-oidc"
+        source, target = ROOT / "live" / deployment, self.repository / "live" / deployment
+        target.mkdir(parents=True)
+        (target / "terraform.tfvars.json").write_text(
+            (source / "terraform.tfvars.json").read_text().replace("000000000000", "111111111111"))
+        (target / "backend.tf").write_text(
+            (source / "backend.tf").read_text().replace("000000000000", "111111111111")
+            .replace("REPLACE_ME_STATE_BUCKET", "configuredstate"))
+        self.assertFails(self.preflight(deployment, aws()), deployment, "roles", "REPLACE_ME_GITHUB_OWNER")
+
     def test_local_roots_pass_without_any_cli(self):
         result = self.preflight("dev/local/foundation/catalog", repository=ROOT)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

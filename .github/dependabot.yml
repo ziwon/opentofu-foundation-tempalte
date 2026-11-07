@@ -10,6 +10,7 @@ updates:
   - package-ecosystem: opentofu
     directories:
       - /live/dev/aws/bootstrap/state
+      - /live/dev/aws/identity/github-actions-oidc
       - /live/dev/aws/network/core
       - /live/dev/aws/storage/bucket
       - /live/dev/azure/bootstrap/state
@@ -19,6 +20,7 @@ updates:
       - /live/dev/gcp/network/core
       - /live/dev/gcp/storage/bucket
       - /live/prod/aws/bootstrap/state
+      - /live/prod/aws/identity/github-actions-oidc
       - /live/prod/aws/network/core
       - /live/prod/aws/storage/bucket
       - /live/prod/azure/bootstrap/state
@@ -28,6 +30,7 @@ updates:
       - /live/prod/gcp/network/core
       - /live/prod/gcp/storage/bucket
       - /live/stage/aws/bootstrap/state
+      - /live/stage/aws/identity/github-actions-oidc
       - /live/stage/aws/network/core
       - /live/stage/aws/storage/bucket
       - /live/stage/azure/bootstrap/state

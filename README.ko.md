@@ -27,8 +27,8 @@ modules/<cloud>/<module>/        재사용할 핵심 구성 요소
 ```
 
 배포 ID는 `environment/cloud/group/stack`입니다. AWS, Azure, GCP의 네트워크,
-스토리지, 상태 저장소 bootstrap과 로컬 catalog를 dev, stage, prod에 제공하므로
-총 30개 루트가 있습니다. 각 루트는 기본 workspace를 사용합니다.
+스토리지, 상태 저장소 bootstrap, AWS GitHub Actions OIDC role과 로컬 catalog를
+dev, stage, prod에 제공하므로 총 33개 루트가 있습니다. 각 루트는 기본 workspace를 사용합니다.
 
 저장소는 세 계층으로 나뉩니다. `live/` 루트는 상태, provider, 입력을 소유하고
 stack 하나를 `module "stack"`으로 호출합니다. `stacks/<cloud>/<group>/<stack>`의
@@ -88,6 +88,9 @@ tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 AWS는 VPC, 비공개 subnet, 기본 차단 security group과 암호화된 S3 예제를 제공합니다.
 Azure는 VNet, subnet, network security group과 identity 기반 Blob storage를 제공합니다.
 GCP는 custom VPC, subnet, ingress firewall과 비공개 GCS bucket을 제공합니다.
+AWS `identity/github-actions-oidc` 루트는 GitHub Actions job이 저장된 키 없이 OIDC로
+assume하는 IAM role을 만듭니다. OIDC provider는 AWS 계정마다 하나이므로 계정당 한 루트만
+`create_oidc_provider`를 `true`로 설정합니다.
 클라우드별 인증과 권한은 [클라우드 설정](docs/cloud-setup.md)을 참고하세요.
 
 이 예제에는 컴퓨팅 workload, NAT gateway, 공인 IP가 없습니다. 저장 데이터,
