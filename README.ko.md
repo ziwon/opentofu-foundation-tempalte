@@ -1,83 +1,93 @@
-# OpenTofu foundation template
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="OpenTofu foundation template: 모든 배포는 각자의 OpenTofu 루트입니다. 주소 dev/aws/storage/bucket은 live 루트, stack, 핵심 모듈로 이어집니다.">
+</p>
 
-AWS, Azure, GCP를 위한 인프라 모노레포 템플릿입니다. 각 배포 디렉터리가 독립적인
-OpenTofu 실행 루트입니다. 해당 디렉터리에서 `tofu` 명령을 직접 실행합니다.
-일반 배포에는 Python, 생성기, 저장소 전용 실행기가 필요하지 않습니다.
-지원하는 CLI는 OpenTofu입니다.
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="docs/architecture.md">구조</a> ·
+  <a href="docs/cloud-setup.md">클라우드 설정</a> ·
+  <a href="docs/operations.md">운영</a> ·
+  <a href="docs/quality.md">품질 검사</a> ·
+  <a href="docs/atlantis.md">Atlantis</a> ·
+  <a href="CONTRIBUTING.md">기여 안내</a>
+</p>
 
-[English](README.md) · [구조](docs/architecture.md) · [클라우드 설정](docs/cloud-setup.md) ·
-[운영](docs/operations.md) · [보안](SECURITY.md)
+AWS, Azure, GCP를 위한 OpenTofu 모노레포 템플릿입니다. 배포 하나는 디렉터리
+하나이고, 그 디렉터리가 backend, provider, 입력, lock 파일을 직접 가집니다. 실행은
+평범한 `tofu` 명령으로 합니다. 배포에는 Python, 생성기, 저장소 전용 실행기가 필요하지 않습니다.
 
-## 기본 구조
+## 클라우드 계정 없이 실행해 보기
 
-```text
-live/dev/aws/network/core/        독립적인 OpenTofu 루트
-  backend.tf                     명시적인 상태 저장 위치
-  context.tf                     공통 이름과 태그
-  main.tf                        module "stack" 호출
-  providers.tf                   계정 및 provider 설정
-  versions.tf                    OpenTofu 및 provider 버전 요구사항
-  .terraform.lock.hcl            선택된 provider 버전과 해시
-  variables.tf                   입력 선언
-  terraform.tfvars.json          비밀이 아닌 배포별 값
-  outputs.tf                     배포 출력
-stacks/aws/network/core/         루트가 호출하는 용도별 구성
-modules/context/                 공통 이름과 태그 규칙
-modules/<cloud>/<module>/        재사용할 핵심 구성 요소
-```
-
-배포 ID는 `environment/cloud/group/stack`입니다. AWS, Azure, GCP의 네트워크,
-스토리지, 상태 저장소 bootstrap, AWS GitHub Actions OIDC role과 로컬 catalog를
-dev, stage, prod에 제공하므로 총 33개 루트가 있습니다. 각 루트는 기본 workspace를 사용합니다.
-
-저장소는 세 계층으로 나뉩니다. `live/` 루트는 상태, provider, 입력을 소유하고
-stack 하나를 `module "stack"`으로 호출합니다. `stacks/<cloud>/<group>/<stack>`의
-stack은 한 가지 용도에 맞게 리소스를 구성하며 `modules/`의 핵심 모듈을 호출할 수 있습니다.
-핵심 모듈에는 재사용할 구성 요소와 공통 규칙인 `modules/context`가 있습니다.
-Stack과 모듈에는 backend나 provider 설정을 넣지 않습니다.
-
-## 클라우드 계정 없이 시작하기
-
-OpenTofu 1.12.5를 설치합니다. [mise](https://mise.jdx.dev/)를 사용한다면
-[mise.toml](mise.toml)의 고정된 개발 도구 버전을 검토한 후 설치할 수 있습니다.
-아래 로컬 실행에는 Python이나 보안 검사 도구가 필요하지 않습니다.
+OpenTofu 1.12.5를 설치하거나, `mise install`로 [mise.toml](mise.toml)에 고정된 도구를
+모두 설치합니다. 로컬 catalog는 내장 `terraform_data` 리소스만 사용하므로 로컬 상태만
+만들고 클라우드 리소스는 만들지 않습니다.
 
 ```sh
 cd live/dev/local/foundation/catalog
 tofu init -lockfile=readonly
 tofu plan -out=plan.tfplan
 tofu apply plan.tfplan
-tofu output
 tofu state list
 ```
 
-내장 `terraform_data` 리소스만 사용하므로 클라우드 리소스는 생성하지 않습니다.
-출력 이름은 `starter-catalog-dev`입니다. 상태는 저장소 기준
-`.infra/state/dev/local/foundation/catalog/terraform.tfstate`에 저장됩니다.
-저장된 plan을 apply하면 별도의 확인 질문이 나오지 않습니다. 먼저 plan을 검토하세요.
-
-로컬 catalog를 제거할 때도 삭제 plan을 검토한 후 적용합니다.
-
-```sh
-tofu plan -destroy -out=destroy.tfplan
-tofu apply destroy.tfplan
+```text
+Plan: 1 to add, 0 to change, 0 to destroy.
+deployment_name = "starter-catalog-dev"
+module.stack.module.catalog.terraform_data.catalog
 ```
 
-저장소 루트에서는 `just init dev/local/foundation/catalog`,
-`just plan dev/local/foundation/catalog`, `just apply dev/local/foundation/catalog`를
-선택적으로 사용할 수 있습니다. 이 명령은 native OpenTofu 명령의 별칭입니다.
-전체 목록은 `just --list`로 확인합니다.
+상태는 `.infra/state/dev/local/foundation/catalog/terraform.tfstate`에 저장됩니다. 저장된
+plan은 확인 질문 없이 적용되므로 먼저 검토하세요. catalog를 지우려면
+`tofu plan -destroy -out=destroy.tfplan`과 `tofu apply destroy.tfplan`을 실행합니다.
 
-## 실제 클라우드 배포 준비
+## 포함된 것
 
-1. `live/<environment>/<cloud>/<group>/<stack>` 루트를 선택합니다.
-2. `terraform.tfvars.json`에 실제 계정, 구독, 프로젝트, 리전, 이름을 설정합니다.
-3. [bootstrap](docs/bootstrap.md)으로 상태 저장소를 만들거나 기존 저장소를 사용합니다.
-4. `backend.tf`의 저장소 예제 값을 바꿉니다. 명시적인 key나 prefix는 유지합니다.
-5. 클라우드의 기본 인증 방식을 사용합니다. 키, 토큰, 비밀번호는 Git에 넣지 않습니다.
-6. `just preflight dev/aws/network/core`로 현재 로그인이 루트와 맞는지 확인합니다.
-   읽기 전용 선택 검사이며, 네이티브 `tofu` 명령에는 필요하지 않습니다.
-7. 검사를 실행하고 backend를 초기화한 뒤 저장된 plan을 검토합니다. 승인된 절차로 적용합니다.
+dev, stage, prod에 걸쳐 배포 루트 33개를 제공합니다.
+
+| 클라우드 | 네트워크 | 스토리지 | 원격 상태 |
+| --- | --- | --- | --- |
+| AWS | VPC, private subnet, 기본 차단 security group | 비공개, 암호화, 버전 관리 S3 bucket | lock 파일을 쓰는 S3 |
+| Azure | VNet, subnet, network security group | 비공개 container, 버전 관리, ID 기반 접근 | lease를 쓰는 Azure Blob |
+| GCP | Custom VPC, subnet, 수신 방화벽 | uniform access를 쓰는 비공개 버전 관리 bucket | lock을 쓰는 GCS |
+| 로컬 | 내장 catalog | 로컬 상태만 | 로컬 파일 |
+
+- 클라우드마다 자체 backend 저장소를 만드는 상태 bootstrap 루트가 있고, 삭제 보호가
+  걸려 있습니다. [bootstrap](docs/bootstrap.md)을 참고하세요.
+- AWS에는 GitHub Actions OIDC role이 있어서, workflow가 키를 저장하지 않고 짧게
+  유지되는 role을 맡습니다. [클라우드 설정](docs/cloud-setup.md#let-github-actions-assume-an-aws-role)을 참고하세요.
+- 예제는 컴퓨팅, NAT gateway, 공인 IP를 만들지 않습니다. 그래도 스토리지, 요청, 키,
+  버전, 로그에는 요금이 생길 수 있습니다.
+
+## 구성 방식
+
+<p align="center">
+  <img src="./assets/readme/layers.svg" width="100%" alt="dev, stage, prod 루트는 각자 상태, lock, 입력을 가지며, 모두 같은 stack을 호출합니다. 그 stack은 kms-key와 s3-bucket 핵심 모듈을 조합합니다.">
+</p>
+
+배포 주소는 `environment/cloud/group/stack` 형식이며, 예를 들면
+`dev/aws/storage/bucket`입니다. 이 주소가 세 계층을 가리킵니다.
+
+- **`live/<주소>`** 는 직접 실행하는 루트입니다. backend, provider, 입력, lock 파일을
+  가지며, stack 하나를 `module "stack"`으로 호출합니다.
+- **`stacks/<cloud>/<group>/<stack>`** 은 한 가지 용도에 맞게 리소스를 조합합니다.
+  모든 환경이 같은 stack을 호출합니다.
+- **`modules/<cloud>/<name>`** 에는 `kms-key`, `s3-bucket` 같은 재사용 구성 요소가 있습니다.
+  `modules/context`는 모든 루트가 쓰는 `<namespace>-<name>-<environment>` ID와 태그를 만듭니다.
+
+Stack과 모듈에는 provider나 backend 설정이 없습니다. 각 루트는 주소와 일치하는 상태
+키를 명시합니다. [구조](docs/architecture.md), [이름과 태그](docs/context.md),
+[배포 추가](docs/adding-stacks.md)를 참고하세요.
+
+## 클라우드 배포 시작하기
+
+1. `live/<environment>/<cloud>/<group>/<stack>` 아래에서 루트를 고릅니다.
+2. `terraform.tfvars.json`에 계정, 구독, 또는 프로젝트와 리전, 이름을 설정합니다.
+3. [bootstrap](docs/bootstrap.md)으로 상태 저장소를 만들거나, 이미 관리 중인 저장소를 씁니다.
+4. `backend.tf`의 저장소 자리표시자를 바꿉니다. 명시된 key나 prefix는 유지합니다.
+5. 클라우드의 ID 방식으로 로그인합니다. [클라우드 설정](docs/cloud-setup.md)을 참고하세요.
+6. 원한다면 `just preflight dev/aws/network/core`를 실행합니다. 로그인한 ID가 루트와
+   맞는지 확인하며, 아무것도 바꾸지 않습니다.
+7. 저장된 plan을 검토한 뒤 승인된 절차로 적용합니다.
 
 ```sh
 tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
@@ -85,59 +95,16 @@ tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
 tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 ```
 
-AWS는 VPC, 비공개 subnet, 기본 차단 security group과 암호화된 S3 예제를 제공합니다.
-Azure는 VNet, subnet, network security group과 identity 기반 Blob storage를 제공합니다.
-GCP는 custom VPC, subnet, ingress firewall과 비공개 GCS bucket을 제공합니다.
-AWS `identity/github-actions-oidc` 루트는 GitHub Actions job이 저장된 키 없이 OIDC로
-assume하는 IAM role을 만듭니다. OIDC provider는 AWS 계정마다 하나이므로 계정당 한 루트만
-`create_oidc_provider`를 `true`로 설정합니다.
-클라우드별 인증과 권한은 [클라우드 설정](docs/cloud-setup.md)을 참고하세요.
+`just init`, `just plan`, `just apply`는 같은 기본 명령의 선택적 별칭입니다. 전체
+레시피는 `just --list`로 볼 수 있습니다.
 
-이 예제에는 컴퓨팅 workload, NAT gateway, 공인 IP가 없습니다. 저장 데이터,
-요청, KMS key, 버전, 로그에는 비용이 발생할 수 있습니다. 운영 환경에 적용하기 전에
-조직의 IAM, 모니터링, 보존, 사설 연결, 복구 요구사항을 검토해야 합니다.
+## 검사
 
-## 상태 저장소 bootstrap
+<p align="center">
+  <img src="./assets/readme/gates.svg" width="100%" alt="모든 PR은 포맷과 레이아웃 검사, mock plan 검증, TFLint, Trivy 소스 스캔, 로컬 smoke 테스트를 거칩니다. 선택형 Atlantis workflow는 plan을 만들고, 저장된 plan을 스캔하고, Code Owner 승인을 받은 뒤 같은 plan을 적용합니다.">
+</p>
 
-각 클라우드의 `live/<environment>/<cloud>/bootstrap/state`도 일반 native 루트입니다.
-대상 계정과 이름을 설정하고, Azure는 접근을 허용할 IP나 subnet도 설정합니다.
-
-```sh
-tofu -chdir=live/dev/aws/bootstrap/state init -lockfile=readonly
-tofu -chdir=live/dev/aws/bootstrap/state plan -out=bootstrap.tfplan
-tofu -chdir=live/dev/aws/bootstrap/state apply bootstrap.tfplan
-tofu -chdir=live/dev/aws/bootstrap/state output -json backend_config
-```
-
-plan을 검토하고 필요한 검사와 승인을 받은 후 apply하세요. 마지막 출력의 속성을
-workload의 `backend.tf`에 옮기고, 해당 workload의 명시적인 key나 prefix는 유지합니다.
-일반 `init`은 저장소를 생성하지 않습니다. Bootstrap에는 삭제 보호가 있으며 Atlantis
-대상에서 제외됩니다. 상태는 `.infra/state/<deployment>/terraform.tfstate`에 저장되므로
-적용 후 독립적인 암호화 저장소에 백업하세요. [초기 구성과 복구](docs/bootstrap.md)를 참고하세요.
-
-## 이름과 태그
-
-각 루트의 `context.tf`가 `modules/context`를 호출합니다.
-`module.context.id`는 `<namespace>-<name>-<environment>` 형식입니다.
-`module.context.tags`는 공통 태그와 입력의 추가 태그를 합칩니다.
-`project`, `environment`, `managed_by`는 예약된 키이므로 덮어쓸 수 없습니다.
-
-루트는 `id`와 `tags`가 있는 `context` 객체를 `module.stack`에 전달합니다.
-Stack은 `var.context.id`, `var.context.tags`를 사용합니다.
-Provider 설정은 루트에 두고, 클라우드별 이름 변환은 리소스를 소유한 핵심 모듈에 둡니다.
-[이름과 태그](docs/context.md), [배포 추가](docs/adding-stacks.md)를 참고하세요.
-
-## 상태 위치
-
-상태 위치는 각 루트의 `backend.tf`에 명시합니다. 로컬 및 bootstrap 상태는
-`.infra/state/<deployment>/terraform.tfstate`에 있습니다. S3와 Azure는
-`<deployment>/terraform.tfstate` key를, GCS는 `<deployment>` prefix를 사용합니다.
-`.infra/`를 삭제하면 로컬 및 bootstrap 상태도 삭제되므로 먼저 백업하세요.
-
-## 검사와 배포 정책
-
-Python 3.10 이상은 저장소 검사, 보고서 처리, 테스트용 개발 의존성입니다.
-일반 `tofu` 실행에는 필요하지 않습니다.
+Python 3.10 이상과 `mise.toml`의 도구가 있으면 같은 검사를 로컬에서 실행할 수 있습니다.
 
 ```sh
 python3 tools/check.py
@@ -146,19 +113,31 @@ python3 tools/quality_smoke.py
 gitleaks dir . --redact --no-banner
 ```
 
-CI는 OpenTofu만 사용합니다. 형식, 구조, provider 검증, lint, 소스 보안 검사,
-mock plan, 로컬 수명주기를 검사합니다. 실제 scanner가 안전한 입력은 허용하고
-위험하거나 인식하지 못한 입력은 거부하는지도 확인합니다. 클라우드 테스트는 plan만
-만들며 실제 적용과 삭제는 임시 로컬 `terraform_data`에 한정합니다.
+[CI](.github/workflows/check.yml)는 전체 기록에 대해 Gitleaks도 실행합니다. 클라우드
+테스트는 plan만 하며 mock이나 가짜 자격 증명을 씁니다. 로컬 기본 명령은 스캔이나 승인을
+실행하지 않습니다. 신뢰된 자동화가 소스와 저장된 plan을 스캔하고 승인을 요구해야 합니다.
+Trivy는 설정을 검사하지만 IAM role이 무엇을 할 수 있는지는 판단하지 않으므로, role 권한은
+PR에서 직접 검토하세요. [품질 검사](docs/quality.md)와 [검증 범위](docs/verification.md)를 참고하세요.
 
-Native 로컬 명령에는 승인 확인이나 자동 보안 검사가 없습니다. 저장된 plan의
-apply에는 확인 질문도 없습니다. 필수 보안 검사와 승인은 신뢰할 수 있는 배포 자동화에서
-강제해야 합니다. [보안 정책](SECURITY.md)과 [품질 검사](docs/quality.md)를 참고하세요.
+## 선택형 통합
 
-선택형 [Atlantis 연동](docs/atlantis.md)은 built-in `init`, `plan`, `apply`와
-명시적인 소스 및 저장된 `PLANFILE` 검사를 사용합니다. 승인은 서버 소유 설정에 두며
-fork PR, 자동 merge, bootstrap 프로젝트는 비활성화합니다. 일반 로컬 CLI에는 Atlantis가
-필요하지 않습니다.
+모두 필수가 아닙니다. 일반 `tofu` 명령은 이것들 없이 동작합니다.
 
-State, plan, 출력에는 민감한 값이 포함될 수 있습니다. Git이나 공개 로그에 남기지 마세요.
-[검증 범위](docs/verification.md) · [공개 전 확인](docs/publishing.md) · [MIT 라이선스](LICENSE)
+| 통합 | 추가되는 것 | 상태 |
+| --- | --- | --- |
+| [Atlantis](docs/atlantis.md) | 소스와 저장된 plan 스캔, Code Owner 승인을 거치는 PR plan과 apply | 서버 설정을 로컬에서 검증함 |
+| [GitHub Actions OIDC](docs/cloud-setup.md#let-github-actions-assume-an-aws-role) | 정확한 저장소, 브랜치, 환경 claim만 신뢰하는 AWS role | 실제 계정에서 아직 실행하지 않음 |
+| [Prowler](integrations/prowler/README.md) | 선택형 읽기 전용 감사 role과 정기 계정 스캔 workflow | 실제 계정에서 아직 실행하지 않음 |
+| [Infracost](integrations/infracost/README.md) | 저장된 plan의 비용을 계산하는 `just cost <deployment>` | API 키가 필요하며 여기서는 실행하지 않음 |
+| [Preflight](docs/operations.md) | 클라우드 로그인과 루트를 비교하는 `just preflight <deployment>` | 가짜 CLI로 검증함 |
+
+## 보안과 상태
+
+상태, 저장된 plan, provider 메타데이터, 보고서에는 비밀값이 들어갈 수 있습니다. Git과
+공개 로그에 남기지 마세요. 로컬 상태와 bootstrap 상태는 `.infra/state/`에 있으므로,
+`.infra/`를 지우면 그 상태도 지워집니다. 배포를 켜거나 fork를 공개하기 전에
+[보안](SECURITY.md)과 [공개 전 점검표](docs/publishing.md)를 읽으세요.
+
+## 라이선스
+
+[MIT](LICENSE). 설치한 provider와 도구는 각자의 라이선스를 따릅니다.
