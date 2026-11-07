@@ -19,7 +19,7 @@ def module_directories(directory: Path) -> dict[str, Path]:
                                 env={**os.environ, "TF_DATA_DIR": data}, capture_output=True, text=True)
         if result.returncode:
             lines = [line for line in result.stderr.splitlines() if line.strip()]
-            raise ValueError(f"tofu get failed: {lines[0] if lines else result.returncode}")
+            raise ValueError(f"tofu get failed in {directory}: {lines[0] if lines else result.returncode}")
         manifest = json.loads((Path(data) / "modules/modules.json").read_text())
     base = Path(os.path.realpath(directory))
     return {module["Key"]: Path(os.path.normpath(base / module["Dir"])) for module in manifest["Modules"] if module["Key"]}
@@ -57,7 +57,7 @@ def configuration(root: Path, names=(), autoplan=False) -> dict:
                 "enabled": autoplan,
                 "when_modified": [
                     "*.tf", "*.tofu", "*.tf.json", "*.tofu.json", "*.tfvars.json", ".terraform.lock.hcl",
-                    *(f"{repository}/{module}/**/*.{extension}" for module in modules for extension in ("tf", "tofu")),
+                    *(f"{repository}/{module}/**/*.{extension}" for module in modules for extension in ("tf", "tofu", "tf.json", "tofu.json")),
                     f"{repository}/tools/quality.py", f"{repository}/mise.toml",
                     f"{repository}/.tflint.hcl", f"{repository}/atlantis.yaml",
                 ],

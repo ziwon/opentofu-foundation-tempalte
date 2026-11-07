@@ -120,6 +120,8 @@ and automatic apply remain disabled.
 
 After adding or removing roots, regenerate active projects with the same selection
 and options. Add the matching check command to your adopted repository's CI.
+The generator runs `tofu get` for each root to find the modules it loads, so it
+needs OpenTofu and network access to any registry module that a stack calls.
 
 ```sh
 python3 tools/atlantis.py --output integrations/atlantis/atlantis.yaml.example
