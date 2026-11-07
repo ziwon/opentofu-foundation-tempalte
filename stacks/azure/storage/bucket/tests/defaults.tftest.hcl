@@ -22,6 +22,10 @@ run "storage_account" {
     error_message = "Workload blobs must keep the objects container."
   }
   assert {
+    condition     = module.storage_account.replication_type == "LRS" && module.storage_account.delete_retention_days == 7
+    error_message = "Workload storage must use local replication and keep deleted blobs and containers for 7 days."
+  }
+  assert {
     condition     = azurerm_resource_group.this.name == "starter-fixture-dev-rg" && azurerm_resource_group.this.location == var.location && azurerm_resource_group.this.tags == tomap(var.context.tags)
     error_message = "The resource group must use the deployment name, location, and context tags."
   }

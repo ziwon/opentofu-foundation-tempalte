@@ -25,6 +25,10 @@ run "backend_config" {
     condition     = azurerm_resource_group.this.location == var.location && azurerm_resource_group.this.tags == tomap(var.context.tags)
     error_message = "The state resource group must use the selected location and context tags."
   }
+  assert {
+    condition     = module.storage_account.replication_type == "ZRS" && module.storage_account.delete_retention_days == 30
+    error_message = "State storage must use zone replication and keep deleted blobs and containers for 30 days."
+  }
 }
 
 run "truncated_dev_account_name" {
