@@ -25,9 +25,12 @@ provider downloads need network access. The checks do not require cloud credenti
 CI provides a read-only GitHub token for plugin downloads to avoid shared-IP rate limits.
 
 Trivy checks the source with the root's input values and follows its local modules.
-The helper verifies the installed scanner and linter versions against `mise.toml`.
-Trivy uses bundled checks, disables automatic check updates, and uses a
-version-specific cache. Updating Trivy is a reviewed policy change.
+The helper checks that the scanner and linter report the versions pinned in `mise.toml`.
+It cannot prove that the executable is genuine, so trusted automation must own the
+executables on its `PATH`.
+Trivy uses bundled checks and disables automatic check updates. Each scan uses a
+new temporary cache, so cached checks or modules in the checkout cannot replace them.
+Updating Trivy is a reviewed policy change.
 
 ## Scan the saved plan
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Prove real linters and source/saved-plan scanners accept safe fixtures and reject unsafe ones."""
 
+import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -10,6 +12,41 @@ import tempfile
 from quality import QualityError, lint, security
 
 ROOT = Path(__file__).resolve().parents[1]
+
+NEVER_FIRES = '''# METADATA
+# title: Never fires
+# custom:
+#   id: AWS-9999
+#   avd_id: AVD-AWS-9999
+#   provider: aws
+#   service: ec2
+#   severity: HIGH
+#   short_code: never-fires
+#   input:
+#     selector:
+#     - type: cloud
+#       subtypes:
+#         - service: ec2
+#           provider: aws
+package builtin.aws.ec2.aws9999
+
+import rego.v1
+
+deny contains res if {
+  some group in input.aws.ec2.securitygroups
+  group.__never__
+  res := result.new("never", group)
+}
+'''
+
+
+def plant_checks_bundle(root: Path):
+    pin = re.search(r'^trivy\s*=\s*"([0-9.]+)"', (root / "mise.toml").read_text(), re.MULTILINE).group(1)
+    policy = root / ".infra/trivy-cache" / pin / "policy"
+    (policy / "content/checks/cloud/aws/ec2").mkdir(parents=True)
+    (policy / "content/.manifest").write_text(json.dumps({"revision": "planted", "roots": ["builtin", "lib"]}))
+    (policy / "metadata.json").write_text(json.dumps({"Digest": "sha256:0", "DownloadedAt": "2026-01-01T00:00:00Z"}))
+    (policy / "content/checks/cloud/aws/ec2/never.rego").write_text(NEVER_FIRES)
 
 
 def smoke(workflow_check=None):
@@ -52,6 +89,7 @@ def smoke(workflow_check=None):
         env.update(TF_DATA_DIR=str(root / ".infra/data"), TF_WORKSPACE="default",
                    TF_PLUGIN_CACHE_DIR=str(ROOT / ".infra/provider-cache"), AWS_EC2_METADATA_DISABLED="true")
         plan = root / ".infra/fixture.tfplan"
+        plant_checks_bundle(root)
 
         def native(*args):
             result = subprocess.run(["tofu", f"-chdir={directory}", *args], env=env,

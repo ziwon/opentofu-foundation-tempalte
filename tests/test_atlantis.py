@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import re
 import tempfile
 import unittest
 
@@ -67,6 +68,24 @@ class AtlantisProjectsTests(unittest.TestCase):
         self.assertIn("allow-fork-prs: false", server)
         self.assertIn("default-tf-distribution: opentofu", server)
         self.assertIn("disable-apply-all: true", server)
+
+    def test_policy_that_atlantis_executes_requires_code_owner_review(self):
+        repos = (atlantis.ROOT / "integrations/atlantis/repos.yaml.example").read_text()
+        executed = set(re.findall(r"run: python3 (?:\.\./){5}(\S+)", repos))
+        self.assertIn("tools/quality.py", executed)
+        policy = executed | {"tools/", "mise.toml", ".tflint.hcl", "atlantis.yaml",
+                             "integrations/atlantis/mise.toml",
+                             ".github/CODEOWNERS", ".github/workflows/check.yml"}
+        text = (atlantis.ROOT / ".github/CODEOWNERS").read_text()
+        rules = [line.split() for line in text.splitlines() if line.strip() and not line.startswith("#")]
+        for pattern, *_ in rules:
+            self.assertTrue(pattern.startswith("/") and not set("*?[") & set(pattern),
+                            f"Use anchored CODEOWNERS paths without globs: {pattern}")
+        for path in sorted(policy):
+            matches = [owners for pattern, *owners in rules
+                       if (path.startswith(pattern[1:]) if pattern.endswith("/") else path == pattern[1:])]
+            with self.subTest(path=path):
+                self.assertTrue(matches and matches[-1], "Atlantis policy must have a code owner")
 
 
 if __name__ == "__main__":

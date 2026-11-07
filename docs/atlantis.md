@@ -10,6 +10,9 @@ an Atlantis server or configure cloud identities.
 2. Install the pinned OpenTofu, Trivy, and TFLint versions from [mise.toml](../mise.toml).
 3. Expose OpenTofu as `tofu1.12.5` on the server's `PATH` for Atlantis's pinned
    version discovery. Keep `tofu`, `trivy`, and `tflint` available for verification tools.
+   Put the executables themselves on the Atlantis process's `PATH`. Do not expose mise
+   or asdf shims, and do not run `mise activate` for that process. A shim selects its
+   version from configuration in the current directory, which is the PR checkout.
 4. Provide persistent storage for Atlantis's data directory and retained PR plans.
 5. Configure least-privilege cloud and backend identities through [cloud setup](cloud-setup.md).
 
@@ -17,7 +20,7 @@ The server example sets `tf-download: false`. Install the pinned OpenTofu binary
 before starting Atlantis. Ordinary local deployment commands have no Atlantis or
 Python dependency. The server quality steps require Python and the scanner tools.
 
-Optional local installation through mise:
+Optional local installation through mise, for workstations and CI only:
 
 ```sh
 mise trust
@@ -39,6 +42,7 @@ before changing its pin.
 5. Keep the `foundation` workflow and its `approved`, `mergeable`, and `undiverged` apply requirements.
 6. Configure the VCS identity and webhook secret through your secret manager.
 7. Configure HTTPS, authenticated web access, branch protection, and required CI checks.
+   Replace the team in [CODEOWNERS](../.github/CODEOWNERS) and require Code Owner review.
 8. Dismiss stale approvals on new commits and keep `checkout-strategy: merge`.
 
 ```sh
@@ -48,7 +52,14 @@ atlantis server --config /etc/atlantis/server.yaml
 Keep `allow-fork-prs: false`. Restrict command authors with VCS permissions and
 Atlantis team allowlists. Server-owned workflow definitions still execute reviewed
 repository code, providers, and the quality helper. Apply approval alone does not
-make an untrusted plan safe. See [Atlantis security](https://www.runatlantis.io/docs/security.html).
+make an untrusted plan safe.
+
+The quality helper, its tool pins, and its lint rules come from the PR checkout.
+A PR can change the policy that checks it. The plan stage runs that changed policy.
+Code Owner review protects the policy files in the reviewed commit. GitHub does not
+report the PR as mergeable until the owning team approves, so the `mergeable`
+requirement blocks apply. Plan-stage code runs in the same checkout and can still
+change files on disk before apply. See [Atlantis security](https://www.runatlantis.io/docs/security.html).
 
 ## Activate selected deployments
 

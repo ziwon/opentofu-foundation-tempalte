@@ -1,0 +1,9 @@
+# Replace REPLACE_OWNER/REPLACE_TEAM with the team that owns deployment policy.
+# Enable "Require review from Code Owners" in branch protection. Atlantis's
+# mergeable apply requirement then blocks apply until that team approves.
+/.github/ @REPLACE_OWNER/REPLACE_TEAM
+/integrations/atlantis/ @REPLACE_OWNER/REPLACE_TEAM
+/tools/ @REPLACE_OWNER/REPLACE_TEAM
+/atlantis.yaml @REPLACE_OWNER/REPLACE_TEAM
+/mise.toml @REPLACE_OWNER/REPLACE_TEAM
+/.tflint.hcl @REPLACE_OWNER/REPLACE_TEAM

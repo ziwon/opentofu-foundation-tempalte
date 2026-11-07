@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import zipfile
 
 
@@ -109,18 +110,20 @@ def reject_suppressions(root: Path, plan: Path | None):
 def security(root: Path, stack: Path, variables: Path, *, plan: Path | None = None):
     reject_suppressions(root, plan)
     env = {key: value for key, value in os.environ.items() if not key.startswith("TRIVY_")}
-    version = require_version("trivy", root, env)
+    require_version("trivy", root, env)
     kind = "terraformplan-snapshot" if plan else "terraform"
-    arguments = ["trivy", "config", "--config=", "--ignorefile=", "--disable-telemetry",
-                 "--skip-version-check", "--skip-check-update", "--format=json",
-                 "--include-non-failures", "--severity=HIGH,CRITICAL", "--exit-code=0",
-                 f"--cache-dir={root / '.infra/trivy-cache' / version}",
-                 f"--module-dir={root / '.infra/trivy-modules'}", f"--misconfig-scanners={kind}"]
-    if plan:
-        arguments.append(str(plan))
-    else:
-        arguments.extend(["--skip-dirs=.terraform", "--skip-dirs=tests", f"--tf-vars={variables}", str(stack)])
-    report = execute(arguments, root, env=env, capture=True).stdout
+    # A cache inside the checkout would let a PR replace Trivy's embedded checks.
+    with tempfile.TemporaryDirectory(prefix="trivy-") as cache:
+        arguments = ["trivy", "config", "--config=", "--ignorefile=", "--disable-telemetry",
+                     "--skip-version-check", "--skip-check-update", "--format=json",
+                     "--include-non-failures", "--severity=HIGH,CRITICAL", "--exit-code=0",
+                     f"--cache-dir={cache}", f"--module-dir={Path(cache) / 'modules'}",
+                     f"--misconfig-scanners={kind}"]
+        if plan:
+            arguments.append(str(plan))
+        else:
+            arguments.extend(["--skip-dirs=.terraform", "--skip-dirs=tests", f"--tf-vars={variables}", str(stack)])
+        report = execute(arguments, root, env=env, capture=True).stdout
     checks = inspect_report(report, kind)
     print(f"Security passed ({kind}, {checks} reported checks): {variables.parent.relative_to(root / 'live')}", flush=True)
 
