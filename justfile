@@ -6,6 +6,9 @@ default:
 init deployment:
     tofu -chdir="live/$1" init
 
+preflight deployment:
+    python3 tools/preflight.py "$1"
+
 plan deployment:
     tofu -chdir="live/$1" plan -out=plan.tfplan
 
