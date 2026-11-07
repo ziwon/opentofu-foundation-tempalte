@@ -76,7 +76,9 @@ optional aliases for native commands. Use `just --list` for the available recipe
 3. Create state storage through [bootstrap](docs/bootstrap.md), or use storage you already manage.
 4. Replace the storage placeholders in `backend.tf`. Preserve its explicit key or prefix.
 5. Authenticate through your cloud's supported identity mechanism, following [cloud setup](docs/cloud-setup.md).
-6. Run the checks, initialize the backend, review a saved plan, and apply it through your approved deployment process.
+6. Run `just preflight dev/aws/network/core` to confirm that your login matches the root.
+   The preflight is read-only and optional. Native `tofu` commands do not need it.
+7. Run the checks, initialize the backend, review a saved plan, and apply it through your approved deployment process.
 
 ```sh
 tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
