@@ -119,11 +119,13 @@ def module_directory(directory: Path, source: str) -> Path:
     return child
 
 
-def managed_addresses(directory: Path, prefix: str = "") -> tuple[set[str], list[tuple[str, str]]]:
+def managed_addresses(directory: Path, prefix: str = "", chain: tuple[Path, ...] = ()) -> tuple[set[str], list[tuple[str, str]]]:
     """Return absolute resource addresses and moves for a root and every local module it calls."""
     if not prefix:
         # OpenTofu runs in the physical directory, so parent segments climb from there.
         directory = Path(os.path.realpath(directory))
+    if directory in chain:
+        raise ValueError(f"Cannot trace a module cycle through {directory.name}")
     unread = sorted(path.name for pattern in UNREAD for path in directory.glob(pattern))
     if unread:
         raise ValueError(f"Cannot trace {directory.name} with {', '.join(unread)}")
@@ -133,7 +135,7 @@ def managed_addresses(directory: Path, prefix: str = "") -> tuple[set[str], list
     resources = {prefix + address for address in local_resources}
     moves = [(prefix + source, prefix + target) for source, target in local_moves]
     for name, source in calls.items():
-        child_resources, child_moves = managed_addresses(module_directory(directory, source), f"{prefix}module.{name}.")
+        child_resources, child_moves = managed_addresses(module_directory(directory, source), f"{prefix}module.{name}.", (*chain, directory))
         resources |= child_resources
         moves += child_moves
     return resources, moves

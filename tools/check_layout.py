@@ -13,6 +13,9 @@ from atlantis import EXAMPLE, ROOT, configuration, write_configuration
 
 def check(root: Path):
     write_configuration(configuration(root), root / EXAMPLE, check=True)
+    for directory in sorted((root / "live").glob("*/*/*/*")):
+        if directory.is_dir() and not (directory / "terraform.tfvars.json").is_file():
+            raise ValueError(f"Missing terraform.tfvars.json: {directory.relative_to(root / 'live')}")
     roots = sorted((root / "live").glob("*/*/*/*/terraform.tfvars.json"))
     if not roots or (root / "stacks").exists():
         raise ValueError("Use native live roots and reusable modules; no stacks runtime layer")
