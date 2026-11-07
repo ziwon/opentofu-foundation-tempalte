@@ -25,7 +25,11 @@ class PreflightError(Exception):
 def cli(*args, login=None):
     if shutil.which(args[0]) is None:
         raise PreflightError(f"the {args[0]} CLI is not installed")
-    result = subprocess.run(args, capture_output=True, text=True)
+    timeout = float(os.environ.get("PREFLIGHT_TIMEOUT_SECONDS") or 30)
+    try:
+        result = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise PreflightError(f"`{' '.join(args)}` did not answer within {timeout:g} seconds") from None
     if login and result.returncode:
         raise PreflightError(f"`{' '.join(args)}` failed with exit code {result.returncode}. "
                              f"Check that {args[0]} works and that you are logged in, for example with `{login}`")
@@ -80,7 +84,13 @@ def preflight(deployment):
         return [f"{deployment}: local root, nothing to check"], True
     if cloud not in EXPECTED:
         return [f"{deployment}: preflight does not support the {cloud} cloud"], False
-    values = json.loads((directory / "terraform.tfvars.json").read_text())
+    for name in ("terraform.tfvars.json", "backend.tf"):
+        if not (directory / name).is_file():
+            return [f"{deployment}: {name} is missing"], False
+    try:
+        values = json.loads((directory / "terraform.tfvars.json").read_text())
+    except ValueError:
+        return [f"{deployment}: terraform.tfvars.json is not valid JSON"], False
     if missing := unconfigured(directory, values, EXPECTED[cloud].values()):
         return [f"{deployment} is not configured: {item}" for item in missing], False
     try:

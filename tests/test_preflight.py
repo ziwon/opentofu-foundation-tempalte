@@ -141,8 +141,10 @@ class PreflightTests(unittest.TestCase):
 
     def test_unreadable_root_inputs_fail_cleanly(self):
         directory = self.repository / "live" / AWS
+        backend = (directory / "backend.tf").read_text()
         (directory / "backend.tf").unlink()
         self.assertFails(self.preflight(AWS, aws()), AWS, "backend.tf")
+        (directory / "backend.tf").write_text(backend)
         (directory / "terraform.tfvars.json").write_text("{not json")
         self.assertFails(self.preflight(AWS, aws()), AWS, "terraform.tfvars.json")
 
