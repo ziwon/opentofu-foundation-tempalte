@@ -196,6 +196,14 @@ run "pattern_for_every_claim" {
   expect_failures = [var.roles]
 }
 
+run "pattern_across_repositories" {
+  command = plan
+  variables {
+    roles = { deploy = { name = "starter-fixture-dev-deploy", subject_patterns = ["repo:octo-org/*:ref:refs/heads/main*"] } }
+  }
+  expect_failures = [var.roles]
+}
+
 run "role_without_subjects" {
   command = plan
   variables {
