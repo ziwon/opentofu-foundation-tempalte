@@ -223,3 +223,18 @@ class SourcePathTests(unittest.TestCase):
     def test_plain_sources_still_trace(self):
         with tempfile.TemporaryDirectory() as temporary:
             self.trace(Path(temporary), "./m")
+
+
+class RootSymlinkTests(unittest.TestCase):
+    def test_parent_segments_climb_from_the_physical_root_like_opentofu(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            (base / "repo/m").mkdir(parents=True)
+            (base / "repo/m/main.tf").write_text('resource "terraform_data" "x" {}\n')
+            (base / "alt/deep/r").mkdir(parents=True)
+            (base / "alt/deep/m").mkdir(parents=True)
+            (base / "alt/deep/m/main.tf").write_text('resource "terraform_data" "y" {}\n')
+            (base / "alt/deep/r/main.tf").write_text('module "m" {\n  source = "../m"\n}\nmoved {\n  from = terraform_data.x\n  to   = module.m.terraform_data.x\n}\n')
+            (base / "repo/r").symlink_to(base / "alt/deep/r")
+            with self.assertRaisesRegex(ValueError, "Legacy address"):
+                verify_continuity(["terraform_data.x"], *managed_addresses(base / "repo/r"))
