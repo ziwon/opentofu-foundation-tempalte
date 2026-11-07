@@ -33,6 +33,10 @@ jobs:
         with:
           version: '2026.7.14'
           install_args: trivy tflint
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .infra/tflint-plugins
+          key: tflint-plugins-${{ runner.os }}-${{ hashFiles('.tflint.hcl') }}
       - name: Native roots, lint, security, and mocked deployments
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -40,8 +44,12 @@ jobs:
       - name: Real CLI lifecycle with local-only resources
         run: python3 tools/smoke.py
       - name: Baseline state migration with local-only resources
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: python3 tools/migration_smoke.py
       - name: Real linter and scanner acceptance and rejection checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: python3 tools/quality_smoke.py
 
   atlantis:
