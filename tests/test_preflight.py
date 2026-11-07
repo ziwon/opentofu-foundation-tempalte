@@ -21,7 +21,10 @@ CONFIGURED = {
 }
 FAKE_CLI = '''#!{python}
 import sys
+import time
 responses = {responses!r}
+if "hang" in responses:
+    time.sleep(30)
 for word, (output, code) in responses.items():
     if word in sys.argv[1:]:
         sys.stdout.write(output)
@@ -74,7 +77,8 @@ class PreflightTests(unittest.TestCase):
         repository = repository or self.repository
         result = subprocess.run([sys.executable, str(repository / "tools/preflight.py"), deployment],
                                 capture_output=True, text=True,
-                                env={"PATH": str(directory), "HOME": str(self.temporary)})
+                                env={"PATH": str(directory), "HOME": str(self.temporary),
+                                     "PREFLIGHT_TIMEOUT_SECONDS": "2"})
         self.assertNotIn("Traceback", result.stderr)
         return result
 
@@ -130,6 +134,17 @@ class PreflightTests(unittest.TestCase):
                 result = self.preflight(deployment, clis)
                 self.assertFails(result, deployment)
                 self.assertIn("log", result.stderr.lower())
+
+    def test_unresponsive_cli_fails_without_hanging(self):
+        result = self.preflight(AWS, {"aws": {"hang": ("", 0)}})
+        self.assertFails(result, AWS, "did not answer")
+
+    def test_unreadable_root_inputs_fail_cleanly(self):
+        directory = self.repository / "live" / AWS
+        (directory / "backend.tf").unlink()
+        self.assertFails(self.preflight(AWS, aws()), AWS, "backend.tf")
+        (directory / "terraform.tfvars.json").write_text("{not json")
+        self.assertFails(self.preflight(AWS, aws()), AWS, "terraform.tfvars.json")
 
     def test_local_roots_pass_without_any_cli(self):
         result = self.preflight("dev/local/foundation/catalog", repository=ROOT)
