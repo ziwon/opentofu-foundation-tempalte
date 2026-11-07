@@ -3,17 +3,22 @@
 from pathlib import Path
 import re
 
-UNREAD = ("*.tofu", "*.tf.json", "*.tofu.json")
+UNREAD = ("*.tofu", "*.tf.json", "*.tofu.json", "override.tf", "*_override.tf")
+INTERPOLATION = "\0"
 BLOCK = re.compile(r'^(resource|module|moved)((?:[ \t]+"[^"]*")*)[ \t]*\{', re.M)
 
 
 def strip(text: str) -> str:
-    """Drop comments, heredoc bodies, interpolations, and braces inside strings."""
+    """Drop comments, interpolations, and braces inside strings; reject what it cannot read."""
     out, i, stack = [], 0, []
     while i < len(text):
         char, pair = text[i], text[i:i + 2]
         if stack and stack[-1] == "string":
+            if pair == "%{" or text.startswith("$${", i):
+                raise ValueError("Cannot trace template directives or escaped interpolations")
             if pair == "${":
+                if "code" not in stack:
+                    out.append(INTERPOLATION)
                 stack.append("code")
                 i += 1
             elif char == "\\":
@@ -29,10 +34,8 @@ def strip(text: str) -> str:
         elif pair == "//" or char == "#":
             close = text.find("\n", i)
             i = len(text) if close < 0 else close - 1
-        elif pair == "<<" and (heredoc := re.compile(r"<<-?([A-Za-z_]\w*)[ \t]*\n").match(text, i)):
-            close = re.compile(rf"^[ \t]*{heredoc.group(1)}[ \t]*$", re.M).search(text, heredoc.end())
-            out.append('""')
-            i = (close.end() if close else len(text)) - 1
+        elif pair == "<<":
+            raise ValueError("Cannot trace heredocs")
         elif stack:
             if char in '"{':
                 stack.append("string" if char == '"' else "code")
@@ -67,6 +70,8 @@ def attribute(body: str, name: str) -> str | None:
 def parse_module(text: str) -> tuple[set[str], dict[str, str], list[tuple[str, str]]]:
     """Return one module's resources, local module calls, and moves, relative to that module."""
     resources, calls, moves = set(), {}, []
+    if any(char.isspace() and char not in " \t\n" for char in text):
+        raise ValueError("Cannot trace whitespace other than spaces, tabs, and line feeds")
     text = strip(text)
     for match in BLOCK.finditer(text):
         kind, labels = match.group(1), re.findall(r'"([^"]*)"', match.group(2))
@@ -85,8 +90,8 @@ def parse_module(text: str) -> tuple[set[str], dict[str, str], list[tuple[str, s
             resources.add(address)
             continue
         source = (attribute(body, "source") or "").strip('"')
-        if not source.startswith(("./", "../")):
-            raise ValueError(f"Cannot trace {address} with non-local source {source!r}")
+        if not source.startswith(("./", "../")) or INTERPOLATION in source:
+            raise ValueError(f"Cannot trace {address} with source {source.replace(INTERPOLATION, '${...}')!r}")
         calls[labels[0]] = source
     return resources, calls, moves
 
@@ -96,7 +101,8 @@ def managed_addresses(directory: Path, prefix: str = "") -> tuple[set[str], list
     unread = sorted(path.name for pattern in UNREAD for path in directory.glob(pattern))
     if unread:
         raise ValueError(f"Cannot trace {directory.name} with {', '.join(unread)}")
-    text = "\n".join(path.read_text() for path in sorted(directory.glob("*.tf")))
+    names = sorted(path for path in directory.glob("*.tf") if not path.name.startswith("."))
+    text = "\n".join(path.read_bytes().decode() for path in names)
     local_resources, calls, local_moves = parse_module(text)
     resources = {prefix + address for address in local_resources}
     moves = [(prefix + source, prefix + target) for source, target in local_moves]
