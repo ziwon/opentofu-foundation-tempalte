@@ -7,6 +7,7 @@ import re
 import sys
 from urllib.parse import unquote, urlsplit
 
+from addresses import managed_addresses, verify_continuity
 from atlantis import EXAMPLE, ROOT, configuration, write_configuration
 
 
@@ -15,6 +16,7 @@ def check(root: Path):
     roots = sorted((root / "live").glob("*/*/*/*/terraform.tfvars.json"))
     if not roots or (root / "stacks").exists():
         raise ValueError("Use native live roots and reusable modules; no stacks runtime layer")
+    legacy = json.loads((root / "tools/legacy-addresses.json").read_text())
     states = set()
     compositions = set()
     for variables in roots:
@@ -55,6 +57,10 @@ def check(root: Path):
         states.add(state)
         if cloud != "local" and not (directory / ".terraform.lock.hcl").is_file():
             raise ValueError(f"Missing provider lock: {deployment}")
+        try:
+            verify_continuity(legacy.get(f"{cloud}/{group}/{stack}", []), *managed_addresses(directory))
+        except ValueError as error:
+            raise ValueError(f"{error}: {deployment}") from None
     discovered = {path.parent for path in (root / "modules").glob("*/*/*/main.tf")}
     if compositions != discovered:
         raise ValueError(f"Composition modules and live roots differ: {compositions ^ discovered}")
