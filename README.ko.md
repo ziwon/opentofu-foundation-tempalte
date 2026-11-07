@@ -120,7 +120,7 @@ workload의 `backend.tf`에 옮기고, 해당 workload의 명시적인 key나 pr
 
 루트는 `id`와 `tags`가 있는 `context` 객체를 `module.stack`에 전달합니다.
 Stack은 `var.context.id`, `var.context.tags`를 사용합니다.
-Provider 설정은 루트에 두고, 클라우드별 이름 변환은 stack에 둡니다.
+Provider 설정은 루트에 두고, 클라우드별 이름 변환은 리소스를 소유한 핵심 모듈에 둡니다.
 [이름과 태그](docs/context.md), [배포 추가](docs/adding-stacks.md)를 참고하세요.
 
 ## 기존 상태 마이그레이션

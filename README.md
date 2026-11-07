@@ -104,8 +104,8 @@ metadata with optional `tags` from the live inputs. The keys `project`,
 `environment`, and `managed_by` are reserved.
 
 The root passes these outputs to its stack through a typed `context`
-object with `id` and `tags`. The stack owns resources and cloud-specific name
-transformations. Providers remain in the root. See [names and tags](docs/context.md)
+object with `id` and `tags`. The stack composes resources, and the core modules
+it calls own cloud-specific name rules. Providers remain in the root. See [names and tags](docs/context.md)
 and [adding deployments](docs/adding-stacks.md).
 
 ## State and migration
