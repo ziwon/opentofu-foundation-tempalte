@@ -5,6 +5,10 @@ account. The template's checks, CI, and Atlantis workflow do not use it. The ide
 roots create no audit role until you set `audit_subjects`, and no workflow runs until
 you copy the example into `.github/workflows/`.
 
+**Verification status.** The audit role's plan and the workflow syntax are checked
+offline. Neither has run against a live AWS account. Test the workflow in a sandbox
+account before you rely on its reports.
+
 Prowler calls read-only AWS APIs and reports how the account is configured. Version
 5.48.0 has 672 AWS checks across 90 services, such as IAM password policy, root
 account MFA, public S3 buckets, CloudTrail coverage, and unencrypted volumes. It maps

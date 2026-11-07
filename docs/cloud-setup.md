@@ -51,6 +51,9 @@ makes any plan that destroys the bucket or key fail. That is not a backup or ret
 
 ### Let GitHub Actions assume an AWS role
 
+This setup is checked offline only. It has not yet run against a live AWS account or
+a real GitHub token, so test it in a sandbox account first.
+
 The `live/<environment>/aws/identity/github-actions-oidc` roots create IAM roles
 that GitHub Actions jobs assume with short-lived OIDC tokens instead of stored keys.
 See [`modules/aws/github-actions-oidc`](../modules/aws/github-actions-oidc/README.md)
