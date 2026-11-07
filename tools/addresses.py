@@ -3,7 +3,47 @@
 from pathlib import Path
 import re
 
+UNREAD = ("*.tofu", "*.tf.json", "*.tofu.json")
 BLOCK = re.compile(r'^(resource|module|moved)((?:[ \t]+"[^"]*")*)[ \t]*\{', re.M)
+
+
+def strip(text: str) -> str:
+    """Drop comments, heredoc bodies, interpolations, and braces inside strings."""
+    out, i, stack = [], 0, []
+    while i < len(text):
+        char, pair = text[i], text[i:i + 2]
+        if stack and stack[-1] == "string":
+            if pair == "${":
+                stack.append("code")
+                i += 1
+            elif char == "\\":
+                i += 1
+            else:
+                if char == '"':
+                    stack.pop()
+                if char not in "{}" and "code" not in stack:
+                    out.append(char)
+        elif pair == "/*":
+            close = text.find("*/", i + 2)
+            i = len(text) if close < 0 else close + 1
+        elif pair == "//" or char == "#":
+            close = text.find("\n", i)
+            i = len(text) if close < 0 else close - 1
+        elif pair == "<<" and (heredoc := re.compile(r"<<-?([A-Za-z_]\w*)[ \t]*\n").match(text, i)):
+            close = re.compile(rf"^[ \t]*{heredoc.group(1)}[ \t]*$", re.M).search(text, heredoc.end())
+            out.append('""')
+            i = (close.end() if close else len(text)) - 1
+        elif stack:
+            if char in '"{':
+                stack.append("string" if char == '"' else "code")
+            elif char == "}":
+                stack.pop()
+        else:
+            if char == '"':
+                stack.append("string")
+            out.append(char)
+        i += 1
+    return "".join(out)
 
 
 def block_body(text: str, start: int) -> str:
@@ -20,13 +60,14 @@ def attribute(body: str, name: str) -> str | None:
     top, nested = body, 1
     while nested:
         top, nested = re.subn(r"\{[^{}]*\}", "", top)
-    match = re.search(rf"^\s*{name}\s*=\s*(.+?)\s*$", top, re.M)
+    match = re.search(rf"^\s*{name}\s*=[ \t]*(.*?)\s*$", top, re.M)
     return match.group(1) if match else None
 
 
 def parse_module(text: str) -> tuple[set[str], dict[str, str], list[tuple[str, str]]]:
     """Return one module's resources, local module calls, and moves, relative to that module."""
     resources, calls, moves = set(), {}, []
+    text = strip(text)
     for match in BLOCK.finditer(text):
         kind, labels = match.group(1), re.findall(r'"([^"]*)"', match.group(2))
         body = block_body(text, match.end())
@@ -35,8 +76,11 @@ def parse_module(text: str) -> tuple[set[str], dict[str, str], list[tuple[str, s
             continue
         address = ".".join(labels) if kind == "resource" else f"module.{labels[0]}"
         for meta in ("count", "for_each"):
-            if attribute(body, meta):
+            if attribute(body, meta) is not None:
                 raise ValueError(f"Cannot trace {address} with {meta}")
+        for lifecycle in re.finditer(r"^\s*lifecycle\s*\{", body, re.M):
+            if attribute(block_body(body, lifecycle.end()), "enabled") is not None:
+                raise ValueError(f"Cannot trace {address} with lifecycle enabled")
         if kind == "resource":
             resources.add(address)
             continue
@@ -49,6 +93,9 @@ def parse_module(text: str) -> tuple[set[str], dict[str, str], list[tuple[str, s
 
 def managed_addresses(directory: Path, prefix: str = "") -> tuple[set[str], list[tuple[str, str]]]:
     """Return absolute resource addresses and moves for a root and every local module it calls."""
+    unread = sorted(path.name for pattern in UNREAD for path in directory.glob(pattern))
+    if unread:
+        raise ValueError(f"Cannot trace {directory.name} with {', '.join(unread)}")
     text = "\n".join(path.read_text() for path in sorted(directory.glob("*.tf")))
     local_resources, calls, local_moves = parse_module(text)
     resources = {prefix + address for address in local_resources}

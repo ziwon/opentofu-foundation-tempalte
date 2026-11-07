@@ -38,8 +38,11 @@ still upgrade. Do not remove and reimport resources merely because the code move
 For every live root, the check follows each listed address through the `moved`
 blocks in the root and in every local module it calls. Each address must end at
 a distinct managed resource that the code still declares. A `moved` block must
-point at a declared resource or at the `from` of another move. The check rejects
-`count`, `for_each`, and non-local module sources, because it cannot trace them.
+point at a declared resource or at the `from` of another move. Comments, strings,
+and heredocs never count as moves. The check rejects `count`, `for_each`,
+`lifecycle { enabled }`, non-local module sources, and `.tofu` or `.tf.json` files,
+because it cannot trace them. Every inventory entry must match a root, so renaming
+a stack fails until you add moves or retire the entry with its state.
 It does not know about resources you added to your own copy of the old layout.
 Add those addresses to the inventory before you rely on the check.
 

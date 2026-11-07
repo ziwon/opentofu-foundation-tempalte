@@ -61,6 +61,10 @@ def check(root: Path):
             verify_continuity(legacy.get(f"{cloud}/{group}/{stack}", []), *managed_addresses(directory))
         except ValueError as error:
             raise ValueError(f"{error}: {deployment}") from None
+    unmatched = set(legacy) - {"/".join(module.relative_to(root / "modules").parts) for module in compositions}
+    if unmatched:
+        raise ValueError(f"Legacy address inventory has no root for {', '.join(sorted(unmatched))}; "
+                         "keep the root or remove the entry after its state is retired")
     discovered = {path.parent for path in (root / "modules").glob("*/*/*/main.tf")}
     if compositions != discovered:
         raise ValueError(f"Composition modules and live roots differ: {compositions ^ discovered}")

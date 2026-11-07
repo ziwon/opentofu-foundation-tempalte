@@ -1,5 +1,6 @@
 """New deployments and resources do not need a historical state migration."""
 
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -18,6 +19,9 @@ def copy_local_template(root):
                         ignore=shutil.ignore_patterns(".terraform", "*.md", "*.tfplan"))
     shutil.copyfile(ROOT / "mise.toml", root / "mise.toml")
     shutil.copytree(ROOT / "tools", root / "tools", ignore=shutil.ignore_patterns("__pycache__"))
+    inventory = root / "tools/legacy-addresses.json"
+    local = {key: value for key, value in json.loads(inventory.read_text()).items() if key.startswith("local/")}
+    inventory.write_text(json.dumps(local))
     (root / atlantis.EXAMPLE).parent.mkdir(parents=True)
     atlantis.write_configuration(atlantis.configuration(root), root / atlantis.EXAMPLE)
 
