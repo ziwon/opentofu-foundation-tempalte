@@ -7,8 +7,12 @@ import re
 import sys
 from urllib.parse import unquote, urlsplit
 
-from addresses import managed_addresses, verify_continuity
+from addresses import managed_addresses, read_module, verify_continuity
 from atlantis import EXAMPLE, ROOT, configuration, write_configuration
+
+
+def stack_directories(root: Path) -> set[Path]:
+    return {path.parent for path in (root / "stacks").glob("*/*/*/*.tf") if path.is_file()}
 
 
 def check(root: Path):
@@ -33,9 +37,6 @@ def check(root: Path):
         if values.get("environment") != environment:
             raise ValueError(f"Environment differs from directory: {deployment}")
         stacks.add(root / "stacks" / cloud / group / stack)
-        source = f'../../../../../stacks/{cloud}/{group}/{stack}'
-        if not re.search(r'source\s*=\s*"' + re.escape(source) + '"', (directory / "main.tf").read_text()):
-            raise ValueError(f"Root does not call its stack {source}: {deployment}")
         backend = (directory / "backend.tf").read_text()
         block = re.search(r'backend\s+"([^"]+)"', backend)
         if not block:
@@ -60,6 +61,9 @@ def check(root: Path):
         if cloud != "local" and not (directory / ".terraform.lock.hcl").is_file():
             raise ValueError(f"Missing provider lock: {deployment}")
         try:
+            source = f"../../../../../stacks/{cloud}/{group}/{stack}"
+            if read_module(directory)[1].get("stack") != source:
+                raise ValueError(f"Root does not call its stack {source}")
             verify_continuity(legacy.get(f"{cloud}/{group}/{stack}", []), *managed_addresses(directory))
         except ValueError as error:
             raise ValueError(f"{error}: {deployment}") from None
@@ -67,7 +71,7 @@ def check(root: Path):
     if unmatched:
         raise ValueError(f"Legacy address inventory has no root for {', '.join(sorted(unmatched))}; "
                          "keep the root or remove the entry after its state is retired")
-    discovered = {path.parent for path in (root / "stacks").glob("*/*/*/main.tf")}
+    discovered = stack_directories(root)
     if stacks != discovered:
         raise ValueError(f"Stacks and the stacks live roots call differ: {sorted(path.relative_to(root).as_posix() for path in stacks ^ discovered)}")
     for path in [*(root / "modules").rglob("*.tf"), *(root / "stacks").rglob("*.tf")]:
