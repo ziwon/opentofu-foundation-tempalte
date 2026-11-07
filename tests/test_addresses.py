@@ -238,3 +238,14 @@ class RootSymlinkTests(unittest.TestCase):
             (base / "repo/r").symlink_to(base / "alt/deep/r")
             with self.assertRaisesRegex(ValueError, "Legacy address"):
                 verify_continuity(["terraform_data.x"], *managed_addresses(base / "repo/r"))
+
+
+class ModuleCycleTests(unittest.TestCase):
+    def test_module_that_calls_its_own_directory_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "m").mkdir()
+            (root / "main.tf").write_text('module "m" {\n  source = "./m"\n}\n')
+            (root / "m/main.tf").write_text('module "again" {\n  source = "../m"\n}\n')
+            with self.assertRaisesRegex(ValueError, "Cannot trace"):
+                managed_addresses(root)

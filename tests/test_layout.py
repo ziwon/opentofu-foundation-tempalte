@@ -149,3 +149,18 @@ class AddressContinuityTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("local/foundation/catalog", result.stderr)
             self.assertNotIn("Traceback", result.stderr)
+
+    def test_root_without_json_inputs_is_not_skipped(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            copy_local_template(root)
+            directory = root / "live/dev/local/foundation/catalog"
+            variables = directory / "terraform.tfvars.json"
+            (directory / "terraform.tfvars").write_text('namespace = "starter"\n')
+            variables.unlink()
+            (directory / "migrations.tf").unlink()
+            result = subprocess.run([sys.executable, str(root / "tools/check_layout.py")],
+                                    cwd=root, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("dev/local/foundation/catalog", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
