@@ -119,19 +119,37 @@ def module_directory(directory: Path, source: str) -> Path:
     return child
 
 
-def managed_addresses(directory: Path, prefix: str = "", chain: tuple[Path, ...] = ()) -> tuple[set[str], list[tuple[str, str]]]:
-    """Return absolute resource addresses and moves for a root and every local module it calls."""
-    if not prefix:
-        # OpenTofu runs in the physical directory, so parent segments climb from there.
-        directory = Path(os.path.realpath(directory))
-    if directory in chain:
-        raise ValueError(f"Cannot trace a module cycle through {directory.name}")
+def read_module(directory: Path) -> tuple[set[str], dict[str, str], list[tuple[str, str]]]:
     unread = sorted(path.name for pattern in UNREAD for path in directory.glob(pattern))
     if unread:
         raise ValueError(f"Cannot trace {directory.name} with {', '.join(unread)}")
     names = sorted(path for path in directory.glob("*.tf") if path.is_file() and not path.name.startswith("."))
-    text = "\n".join(path.read_bytes().decode() for path in names)
-    local_resources, calls, local_moves = parse_module(text)
+    return parse_module("\n".join(path.read_bytes().decode() for path in names))
+
+
+def enter(directory: Path, chain: tuple[Path, ...]) -> Path:
+    if not chain:
+        # OpenTofu runs in the physical directory, so parent segments climb from there.
+        directory = Path(os.path.realpath(directory))
+    if directory in chain:
+        raise ValueError(f"Cannot trace a module cycle through {directory.name}")
+    return directory
+
+
+def module_directories(directory: Path, chain: tuple[Path, ...] = ()) -> set[Path]:
+    """Return every local module directory a root reaches, directly or through other modules."""
+    directory = enter(directory, chain)
+    reached = set()
+    for source in read_module(directory)[1].values():
+        child = module_directory(directory, source)
+        reached |= {child} | module_directories(child, (*chain, directory))
+    return reached
+
+
+def managed_addresses(directory: Path, prefix: str = "", chain: tuple[Path, ...] = ()) -> tuple[set[str], list[tuple[str, str]]]:
+    """Return absolute resource addresses and moves for a root and every local module it calls."""
+    directory = enter(directory, chain)
+    local_resources, calls, local_moves = read_module(directory)
     resources = {prefix + address for address in local_resources}
     moves = [(prefix + source, prefix + target) for source, target in local_moves]
     for name, source in calls.items():

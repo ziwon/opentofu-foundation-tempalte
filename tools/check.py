@@ -11,6 +11,7 @@ from check_layout import check
 from quality import lint, security
 
 ROOT = Path(__file__).resolve().parents[1]
+LOCK = ".terraform.lock.hcl"
 
 
 def run(*args, cwd=ROOT, env=None):
@@ -37,17 +38,26 @@ def main():
             lint(ROOT, directory, variables, cloud)
             if cloud != "local":
                 security(ROOT, directory, variables)
-        for source in sorted((ROOT / "modules").glob("*/*/*/main.tf")):
-            module = source.parent.relative_to(ROOT / "modules")
-            directory = temporary / "modules" / module
-            shutil.copytree(source.parent, directory, ignore=shutil.ignore_patterns(".terraform", ".terraform.lock.hcl"))
-            lock = ROOT / "live/dev" / module / ".terraform.lock.hcl"
-            if lock.is_file():
-                shutil.copyfile(lock, directory / lock.name)
-            env["TF_DATA_DIR"] = str(temporary / "module-data" / module)
+        tree = temporary / "tree"
+        ignore = shutil.ignore_patterns(".terraform", LOCK)
+        shutil.copytree(ROOT / "modules", tree / "modules", ignore=ignore)
+        units = []
+        for source in sorted((ROOT / "stacks").glob("*/*/*/main.tf")):
+            stack = source.parent.relative_to(ROOT / "stacks")
+            shutil.copytree(source.parent, tree / "stacks" / stack, ignore=ignore)
+            units.append((Path("stacks") / stack, ROOT / "live/dev" / stack / LOCK))
+        for tests in sorted((ROOT / "modules").rglob("tests")):
+            module = tests.parent.relative_to(ROOT)
+            if tests.is_dir() and ".terraform" not in module.parts:
+                units.append((module, next(iter(sorted((ROOT / "live/dev" / module.parts[1]).glob(f"*/*/{LOCK}"))), None)))
+        for unit, lock in units:
+            directory = tree / unit
+            if lock and lock.is_file():
+                shutil.copyfile(lock, directory / LOCK)
+            env["TF_DATA_DIR"] = str(temporary / "unit-data" / unit)
             run("tofu", f"-chdir={directory}", "init", "-backend=false", "-input=false", "-lockfile=readonly", env=env)
             run("tofu", f"-chdir={directory}", "test", "-no-color", env=env)
-    print("Native root validation, environment tests, resource module tests, lint and source security passed.")
+    print("Native root validation, environment tests, stack and module tests, lint and source security passed.")
 
 
 if __name__ == "__main__":

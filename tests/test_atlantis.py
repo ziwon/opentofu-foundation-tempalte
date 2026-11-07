@@ -6,7 +6,10 @@ import re
 import tempfile
 import unittest
 
+from test_layout import copy_local_template
 from tools import atlantis
+
+REPOSITORY = "../../../../.."
 
 
 class AtlantisProjectsTests(unittest.TestCase):
@@ -25,9 +28,9 @@ class AtlantisProjectsTests(unittest.TestCase):
             patterns = project["autoplan"]["when_modified"]
             self.assertIn("*.tf", patterns)
             self.assertIn(".terraform.lock.hcl", patterns)
-            self.assertTrue(any("modules/context/" in pattern for pattern in patterns))
-            module = "/".join(project["name"].split("/")[1:])
-            self.assertTrue(any(f"modules/{module}/" in pattern for pattern in patterns))
+            stack = "/".join(project["name"].split("/")[1:])
+            self.assertIn(f"{REPOSITORY}/modules/context/**/*.tf", patterns)
+            self.assertIn(f"{REPOSITORY}/stacks/{stack}/**/*.tf", patterns)
         self.assertFalse(document["automerge"])
         self.assertFalse(document["parallel_apply"])
         self.assertEqual(document["autodiscover"]["mode"], "disabled")
@@ -40,6 +43,21 @@ class AtlantisProjectsTests(unittest.TestCase):
         for name in ("dev/aws/bootstrap/state", "../../etc", "missing/aws/network/core"):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 atlantis.configuration(atlantis.ROOT, [name])
+
+    def test_projects_watch_every_core_module_their_stack_reaches(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            copy_local_template(root)
+            for name, body in {"label": 'module "part" {\n  source = "../part"\n}\n',
+                               "part": 'resource "terraform_data" "part" {}\n'}.items():
+                (root / "modules/local" / name).mkdir(parents=True)
+                (root / "modules/local" / name / "main.tf").write_text(body)
+            stack = root / "stacks/local/foundation/catalog/main.tf"
+            stack.write_text(stack.read_text() + '\nmodule "label" {\n  source = "../../../../modules/local/label"\n}\n')
+            project, = atlantis.configuration(root, ["dev/local/foundation/catalog"])["projects"]
+            watched = {pattern for pattern in project["autoplan"]["when_modified"] if pattern.endswith("/**/*.tf")}
+            self.assertEqual(watched, {f"{REPOSITORY}/{module}/**/*.tf" for module in (
+                "modules/context", "modules/local/label", "modules/local/part", "stacks/local/foundation/catalog")})
 
     def test_checked_in_projects_are_current_and_check_does_not_overwrite(self):
         document = atlantis.configuration(atlantis.ROOT)

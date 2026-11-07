@@ -1,5 +1,5 @@
 module "stack" {
-  source       = "../../../../../modules/azure/network/core"
+  source       = "../../../../../stacks/azure/network/core"
   context      = { id = module.context.id, tags = module.context.tags }
   location     = var.location
   network_cidr = var.network_cidr
