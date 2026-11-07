@@ -10,15 +10,36 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = Path("integrations/atlantis/atlantis.yaml.example")
-MODULE = re.compile(r'^\s*module\s+"([^"]+)"\s*\{(.*?)^\}', re.MULTILINE | re.DOTALL)
-SOURCE = re.compile(r'^\s*source\s*=\s*"([^"]*)"', re.MULTILINE)
+MODULE = re.compile(r'^module\s+"([^"]+)"\s*\{(.*?)^\}', re.MULTILINE | re.DOTALL)
+ONE_LINE = re.compile(r'^module\s+"([^"]+)"\s*\{([^\n]*)\}\s*$', re.MULTILINE)
+SOURCE = re.compile(r'^  source\s*=\s*"([^"]*)"', re.MULTILINE)
+INLINE_SOURCE = re.compile(r'\bsource\s*=\s*"([^"]*)"')
+
+
+def strip_block_comments(text: str) -> str:
+    """Drop /* */ comments that start outside a string, such as an S3 ARN ending in /*."""
+    out, position = [], 0
+    while (start := text.find("/*", position)) >= 0:
+        line = text[text.rfind("\n", 0, start) + 1:start]
+        if line.replace('\\"', "").count('"') % 2:
+            out.append(text[position:start + 2])
+            position = start + 2
+            continue
+        end = text.find("*/", start + 2)
+        out.append(text[position:start])
+        position = len(text) if end < 0 else end + 2
+    return "".join(out) + text[position:]
 
 
 def module_sources(directory: Path) -> dict[str, str]:
-    """Return each module call's source from blocks that close at column 0, as `tofu fmt` writes them."""
+    """Return each module call's top-level source, as `tofu fmt` lays it out."""
     files = sorted(path for pattern in ("*.tf", "*.tofu") for path in directory.glob(pattern) if path.is_file())
-    text = "\n".join(path.read_text() for path in files)
-    return {name: source.group(1) for name, body in MODULE.findall(text) if (source := SOURCE.search(body))}
+    text = strip_block_comments("\n".join(path.read_text() for path in files))
+    sources = {name: source.group(1) for name, body in ONE_LINE.findall(text)
+               if (source := INLINE_SOURCE.search(body))}
+    text = ONE_LINE.sub("", text)
+    sources.update({name: source.group(1) for name, body in MODULE.findall(text) if (source := SOURCE.search(body))})
+    return sources
 
 
 def module_directories(directory: Path) -> set[Path]:
