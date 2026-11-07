@@ -32,6 +32,13 @@ Trivy uses bundled checks and disables automatic check updates. Each scan uses a
 new temporary cache, so cached checks or modules in the checkout cannot replace them.
 Updating Trivy is a reviewed policy change.
 
+## Share tool caches
+
+The check tools keep provider downloads in `.infra/provider-cache` and TFLint plugins
+in `.infra/tflint-plugins` by default. Set `TF_PLUGIN_CACHE_DIR` or `TFLINT_PLUGIN_DIR`
+to share one cache across checkouts and worktrees, for example on a larger disk.
+OpenTofu reads `plugin_cache_dir` from its CLI configuration for plain `tofu` commands.
+
 ## Scan the saved plan
 
 Scan the actual saved binary plan after planning and again before an approved apply.
