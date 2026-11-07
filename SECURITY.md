@@ -13,10 +13,8 @@ There is no support or response-time SLA.
 ## Deployment policy
 
 Each native OpenTofu root has an explicit backend and independent state. Native
-backend locking and saved-plan state checks still apply. Local commands do not
-verify checkout fingerprints, create plan receipts, scan automatically, or ask
-for an exact deployment name. Applying a saved plan has no interactive confirmation.
-These changes remove the previous repository runner's local enforcement.
+backend locking and saved-plan state checks apply. Local commands do not scan
+automatically or ask for approval. Applying a saved plan has no interactive confirmation.
 
 Use trusted automation for enforced source and saved-plan scans, deployment
 approvals, and restrictions on untrusted code. The Atlantis example combines
@@ -48,5 +46,5 @@ Gitleaks checks secrets independently of infrastructure policy.
 
 Atlantis runs the quality helper from the PR checkout, so plan-stage code is untrusted.
 [Atlantis setup](docs/atlantis.md#know-what-the-checks-trust) lists the controls
-that make its checks meaningful. Review it, [migration](docs/migration.md), and
-[bootstrap recovery](docs/bootstrap.md) before enabling deployment credentials.
+that make its checks meaningful. Review it and [bootstrap recovery](docs/bootstrap.md)
+before enabling deployment credentials.

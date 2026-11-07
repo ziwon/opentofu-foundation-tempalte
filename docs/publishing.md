@@ -6,7 +6,7 @@ Prepare the checkout locally before creating a public repository.
    and private security reporting channel.
 2. Inspect tracked files and history for credentials, state, plans, account-specific
    values, internal domains, and proprietary material. Run both Gitleaks scans.
-3. Run the [documented checks](verification.md), local lifecycle, and migration fixtures.
+3. Run the [documented checks](verification.md), including the local lifecycle fixture.
    Review provider constraints and root lock files.
 4. Create the public repository and push the reviewed files. Enable GitHub's
    **Template repository** setting if users should generate independent copies.
@@ -21,8 +21,8 @@ a deployment identity. Keep `.infra/`, native working directories, state, and
 saved plans out of releases and repository history.
 
 Read [security policy](../SECURITY.md) before enabling cloud credentials. Local
-native commands do not enforce the previous repository approval or fingerprint
-checks. Trusted automation must enforce scans and approvals.
+native commands do not enforce approvals or scans. Trusted automation must
+enforce them.
 
 Mock tests do not prove cloud deployment readiness. Exercise sandbox deployment,
 migration, and recovery with your own identities before enabling production changes.

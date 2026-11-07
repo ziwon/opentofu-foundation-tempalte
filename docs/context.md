@@ -89,7 +89,3 @@ nonportable characters, null values, and maps exceeding its tag budget.
 The template uses a shared subset of cloud tag and label constraints. Check a
 resource's own limits before adding resource-specific metadata. The ID does not
 contain cloud or group, so it is not globally unique across deployment paths.
-
-The native-root migration preserves existing names, tags, and cloud-specific
-transformations. It changes managed-resource addresses through `module.stack`.
-Follow the [migration guide](migration.md) for existing state.

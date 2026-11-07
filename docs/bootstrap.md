@@ -86,7 +86,5 @@ path before initialization and planning. Missing state can make existing resourc
 appear absent. Do not apply that plan as a recovery step. Recover a backup or
 import verified resource identities through an authorized procedure.
 
-The native-root refactor preserves this state path. Follow the
-[migration guide](migration.md) before upgrading an existing bootstrap deployment.
 Moving bootstrap state to different storage is a separate operation described in
 [operations](operations.md). See [cloud setup](cloud-setup.md) for authentication.

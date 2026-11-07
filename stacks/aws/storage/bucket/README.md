@@ -6,6 +6,6 @@ Provider configuration and backend state belong to the calling root.
 
 The encryption key lives in [`modules/aws/kms-key`](../../../../modules/aws/kms-key),
 called as `module "key"`. The bucket lives in [`modules/aws/s3-bucket`](../../../../modules/aws/s3-bucket),
-called as `module "bucket"`. `migrations.tf` moves both from this stack into them.
+called as `module "bucket"`.
 
 Run plan-only mocked checks with `tofu init -backend=false` and `tofu test`.

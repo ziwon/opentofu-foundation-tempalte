@@ -14,7 +14,7 @@ storage and identities across trust boundaries. Never put passwords, access keys
 service-account JSON, tokens, SAS URLs, or encryption keys in `backend.tf`.
 
 Each root declares its complete backend in `backend.tf`, including an explicit
-key, prefix, or local path. Preserve those values for an existing deployment.
+key, prefix, or local path. Keep those values once a deployment has state.
 Replace storage placeholders before initialization. Native `tofu init` connects
 to that backend through its normal authentication mechanism.
 
@@ -121,4 +121,3 @@ actual requirements. No cloud deployment is performed by repository setup or CI.
 
 Native local commands do not automatically scan or approve plans. Use the explicit
 [quality checks](quality.md) and your approved deployment process before applying.
-For an existing shared-root deployment, follow [migration](migration.md) first.

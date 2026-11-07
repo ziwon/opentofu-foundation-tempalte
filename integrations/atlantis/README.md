@@ -43,9 +43,7 @@ Native backend locking still protects the state. Plans and applies are serial by
 default. The server keeps `approved`, `mergeable`, and `undiverged` requirements,
 disables custom workflows and overrides, and restricts repository access. Additional comment arguments are rejected.
 
-The integration does not provide the old runner's checkout fingerprints, receipts,
-exact-name prompt, or artifact cleanup rules. Native saved-plan checks do not
-establish approval of current source. Trusted server policy, VCS permissions,
+Native saved-plan checks do not establish approval of current source. Trusted server policy, VCS permissions,
 branch protection, and protected plan handling provide the deployment boundary.
 
 The server installs the pinned OpenTofu executable as `tofu1.12.5` because automatic
