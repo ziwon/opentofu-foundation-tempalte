@@ -38,9 +38,14 @@ variable "context" {
 ```
 
 Stacks declare provider requirements but do not configure providers, choose cloud
-identities, or declare backends. Put resource relationships in the stack and
-cloud-specific name rules in the core module that owns the resource. Return outputs
-that callers need.
+identities, or declare backends. Declare each provider as a range within its current
+major version, such as `>= 6.71.0, < 7.0.0`. Roots pin the exact version. Put
+resource relationships in the stack and cloud-specific name rules in the core module
+that owns the resource. Return outputs that callers need.
+
+Validate an input in the module that consumes it. A root also validates every
+value that its provider configuration reads, such as an account, subscription,
+or project ID, so a bad value fails before OpenTofu configures the provider.
 
 Create a live root that calls `modules/context` in `context.tf` and the stack
 as `module "stack"` in `main.tf` with

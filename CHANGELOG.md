@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Roots no longer repeat name and CIDR validations that `modules/context` or their
+  stack already applies. Invalid values still fail with the same message, now
+  reported at the module call. Roots keep validations for account, subscription,
+  and project IDs, because their provider configuration reads those values before
+  any module runs. Stacks and core modules now accept a
+  provider range within the current major version, and each root's exact pin and
+  lock file select the version. Dependabot now updates roots only. Plans and
+  provider selections are unchanged.
 - The Atlantis trust model now has one detailed home in `docs/atlantis.md`.
   `SECURITY.md`, `docs/quality.md`, and the integration reference link to it. CI
   caches `.infra/tflint-plugins` keyed on `.tflint.hcl` and passes the read-only

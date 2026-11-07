@@ -36,22 +36,6 @@ updates:
       - /live/stage/gcp/bootstrap/state
       - /live/stage/gcp/network/core
       - /live/stage/gcp/storage/bucket
-      - /modules/aws/kms-key
-      - /modules/aws/s3-bucket
-      - /modules/aws/vpc
-      - /modules/azure/network
-      - /modules/azure/storage-account
-      - /modules/gcp/network
-      - /modules/gcp/storage-bucket
-      - /stacks/aws/bootstrap/state
-      - /stacks/aws/network/core
-      - /stacks/aws/storage/bucket
-      - /stacks/azure/bootstrap/state
-      - /stacks/azure/network/core
-      - /stacks/azure/storage/bucket
-      - /stacks/gcp/bootstrap/state
-      - /stacks/gcp/network/core
-      - /stacks/gcp/storage/bucket
     schedule:
       interval: weekly
     groups:

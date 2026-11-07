@@ -69,8 +69,14 @@ retirement requires a separate review after all consumers move to another backen
 
 ## Update providers
 
-Update the required provider constraint in the stack, any core modules it calls, and its roots together.
-Resolve and review each affected root's lock file:
+Each root's `versions.tf` pins an exact provider version, and its lock file records
+that selection. Stacks and core modules accept a range within the current major
+version, such as `>= 6.71.0, < 7.0.0`, so a minor or patch update changes only
+roots. Dependabot watches the roots for this reason. A major update also needs
+the range widened in every stack and core module that uses the provider, after
+you review their code against the provider's upgrade guide.
+
+Change the pin in each affected root, then resolve and review its lock file:
 
 ```sh
 tofu -chdir=live/dev/aws/network/core init -backend=false -upgrade
