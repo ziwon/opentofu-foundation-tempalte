@@ -46,7 +46,8 @@ a rotating customer-managed key,
 versioning, TLS-only access, bucket-owner enforcement, and public-access blocking.
 Add access logging, retention/lifecycle rules, and
 replication where your requirements call for them. Nonempty buckets resist
-deletion, but that is not a backup or retention policy.
+deletion, and `prevent_destroy` in `modules/aws/s3-bucket` and `modules/aws/kms-key`
+makes any plan that destroys the bucket or key fail. That is not a backup or retention policy.
 
 ## Azure
 
