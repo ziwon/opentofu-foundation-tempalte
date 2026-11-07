@@ -1,12 +1,14 @@
 """Trace managed resource addresses through local modules and moved blocks."""
 
+import os
 from pathlib import Path
 import re
 
 UNREAD = ("*.tofu", "*.tf.json", "*.tofu.json", "override.tf", "*_override.tf")
 INTERPOLATION, ESCAPE = "\0", "\1"
 LABEL = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
-SOURCE = re.compile(r"\.{1,2}/[A-Za-z0-9._/-]*")
+SOURCE = re.compile(r"(\./|(\.\./)+)[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*")
+LITERAL = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._/-")
 BLOCK = re.compile(r'^(resource|module|moved)((?:[ \t]+"[^"]*")*)[ \t]*\{', re.M)
 
 
@@ -30,8 +32,8 @@ def strip(text: str) -> str:
             else:
                 if char == '"':
                     stack.pop()
-                if char not in "{}" and "code" not in stack:
-                    out.append(char)
+                if "code" not in stack:
+                    out.append(char if char in LITERAL or char == '"' else ESCAPE)
         elif pair == "/*":
             close = text.find("*/", i + 2)
             i = len(text) if close < 0 else close + 1
@@ -105,6 +107,18 @@ def parse_module(text: str) -> tuple[set[str], dict[str, str], list[tuple[str, s
     return resources, calls, moves
 
 
+def module_directory(directory: Path, source: str) -> Path:
+    """Resolve a source as text, as OpenTofu does, and refuse symlinks that the OS would follow instead."""
+    child = Path(os.path.normpath(directory / source))
+    base = Path(os.path.commonpath([directory, child]))
+    for part in [child, *child.parents]:
+        if part == base:
+            break
+        if part.is_symlink():
+            raise ValueError(f"Cannot trace module source {source!r} through symlink {part.name}")
+    return child
+
+
 def managed_addresses(directory: Path, prefix: str = "") -> tuple[set[str], list[tuple[str, str]]]:
     """Return absolute resource addresses and moves for a root and every local module it calls."""
     unread = sorted(path.name for pattern in UNREAD for path in directory.glob(pattern))
@@ -116,7 +130,7 @@ def managed_addresses(directory: Path, prefix: str = "") -> tuple[set[str], list
     resources = {prefix + address for address in local_resources}
     moves = [(prefix + source, prefix + target) for source, target in local_moves]
     for name, source in calls.items():
-        child_resources, child_moves = managed_addresses(directory / source, f"{prefix}module.{name}.")
+        child_resources, child_moves = managed_addresses(module_directory(directory, source), f"{prefix}module.{name}.")
         resources |= child_resources
         moves += child_moves
     return resources, moves

@@ -43,8 +43,9 @@ entry must match a root, so renaming a stack fails until you add moves or retire
 the entry with its state.
 
 The check reads a small HCL subset and rejects everything outside it. It rejects
-`count`, `for_each`, `lifecycle { enabled }`, module sources that are not plain local
-paths, heredocs, template directives, escaped interpolations, whitespace other than
+`count`, `for_each`, `lifecycle { enabled }`, module sources other than `./name/...`
+or leading `../` segments followed by plain names, symlinked module directories,
+block labels that are not identifiers, heredocs, template directives, escaped interpolations, whitespace other than
 spaces, tabs, and line feeds, override files, and `.tofu` or `.tf.json` files. It
 ignores comments and hidden files, as OpenTofu does. The check catches missing or
 wrong moves in ordinary configuration. It is not proof against configuration written
