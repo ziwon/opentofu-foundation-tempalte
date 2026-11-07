@@ -2,13 +2,13 @@
 """Check native root structure, state identity, and documentation links."""
 
 import json
+import os
 from pathlib import Path
 import re
 import sys
 from urllib.parse import unquote, urlsplit
 
-from addresses import managed_addresses, read_module, verify_continuity
-from atlantis import EXAMPLE, ROOT, configuration, write_configuration
+from atlantis import EXAMPLE, ROOT, configuration, module_directories, write_configuration
 
 
 def stack_directories(root: Path) -> set[Path]:
@@ -23,7 +23,6 @@ def check(root: Path):
     roots = sorted((root / "live").glob("*/*/*/*/terraform.tfvars.json"))
     if not roots:
         raise ValueError("No native roots under live/<environment>/<cloud>/<group>/<stack>")
-    legacy = json.loads((root / "tools/legacy-addresses.json").read_text())
     states = set()
     stacks = set()
     for variables in roots:
@@ -60,21 +59,13 @@ def check(root: Path):
         states.add(state)
         if cloud != "local" and not (directory / ".terraform.lock.hcl").is_file():
             raise ValueError(f"Missing provider lock: {deployment}")
-        try:
-            source = f"../../../../../stacks/{cloud}/{group}/{stack}"
-            if read_module(directory)[1].get("stack") != source:
-                raise ValueError(f"Root does not call its stack {source}")
-            verify_continuity(legacy.get(f"{cloud}/{group}/{stack}", []), *managed_addresses(directory))
-        except ValueError as error:
-            raise ValueError(f"{error}: {deployment}") from None
-    unmatched = set(legacy) - {"/".join(stack.relative_to(root / "stacks").parts) for stack in stacks}
-    if unmatched:
-        raise ValueError(f"Legacy address inventory has no root for {', '.join(sorted(unmatched))}; "
-                         "keep the root or remove the entry after its state is retired")
+        source = f"../../../../../stacks/{cloud}/{group}/{stack}"
+        if module_directories(directory).get("stack") != Path(os.path.realpath(root / "stacks" / cloud / group / stack)):
+            raise ValueError(f"Root does not call its stack {source}: {deployment}")
     discovered = stack_directories(root)
     if stacks != discovered:
         raise ValueError(f"Stacks and the stacks live roots call differ: {sorted(path.relative_to(root).as_posix() for path in stacks ^ discovered)}")
-    for path in [*(root / "modules").rglob("*.tf"), *(root / "stacks").rglob("*.tf")]:
+    for path in [path for base in ("modules", "stacks") for pattern in ("*.tf", "*.tofu") for path in (root / base).rglob(pattern)]:
         if ".terraform" not in path.parts and re.search(r'\b(?:provider|backend)\s+"', path.read_text()):
             raise ValueError(f"Modules and stacks must not configure providers or backends: {path}")
     for path in root.rglob("*.md"):

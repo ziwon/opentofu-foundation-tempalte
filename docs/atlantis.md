@@ -108,9 +108,7 @@ atlantis apply -p dev/aws/network/core
 The plan stage uses built-in init and plan. The quality steps scan root source
 and Atlantis's saved `PLANFILE`. The apply stage scans source and the same saved plan before
 the built-in apply step. Additional comment arguments are rejected. Preserve this ownership when customizing the workflow.
-Do not mix the old adapter with native plan or apply steps.
 
-Native operations do not recreate former checkout fingerprints or plan receipts.
 Bind approval to the reviewed change through trusted server policy, branch protection,
 and plan handling. Retain the checkout and plan until apply or cancellation.
 
@@ -122,6 +120,8 @@ and automatic apply remain disabled.
 
 After adding or removing roots, regenerate active projects with the same selection
 and options. Add the matching check command to your adopted repository's CI.
+The generator runs `tofu get` for each root to find the modules it loads, so it
+needs OpenTofu and network access to any registry module that a stack calls.
 
 ```sh
 python3 tools/atlantis.py --output integrations/atlantis/atlantis.yaml.example

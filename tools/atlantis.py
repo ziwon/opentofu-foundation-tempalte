@@ -6,12 +6,23 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
-
-from addresses import module_directories
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = Path("integrations/atlantis/atlantis.yaml.example")
+def module_directories(directory: Path) -> dict[str, Path]:
+    """Ask OpenTofu which module directory each module call in a root loads."""
+    with tempfile.TemporaryDirectory(prefix="modules-") as data:
+        result = subprocess.run(["tofu", f"-chdir={directory}", "get", "-no-color"],
+                                env={**os.environ, "TF_DATA_DIR": data}, capture_output=True, text=True)
+        if result.returncode:
+            lines = [line for line in result.stderr.splitlines() if line.strip()]
+            raise ValueError(f"tofu get failed in {directory}: {lines[0] if lines else result.returncode}")
+        manifest = json.loads((Path(data) / "modules/modules.json").read_text())
+    base = Path(os.path.realpath(directory))
+    return {module["Key"]: Path(os.path.normpath(base / module["Dir"])) for module in manifest["Modules"] if module["Key"]}
 
 
 def configuration(root: Path, names=(), autoplan=False) -> dict:
@@ -33,10 +44,9 @@ def configuration(root: Path, names=(), autoplan=False) -> dict:
         if not names and re.search(r'backend\s+"local"', (directory / "backend.tf").read_text()):
             continue
         repository = os.path.relpath(root, directory)
-        try:
-            modules = sorted(module.relative_to(root.resolve()).as_posix() for module in module_directories(directory))
-        except ValueError as error:
-            raise ValueError(f"{error}: {name}") from None
+        repository_root = Path(os.path.realpath(root))
+        modules = sorted({module.relative_to(repository_root).as_posix() for module in module_directories(directory).values()
+                          if module.is_relative_to(repository_root)})
         projects.append({
             "name": name,
             "dir": directory.relative_to(root).as_posix(),
@@ -46,8 +56,8 @@ def configuration(root: Path, names=(), autoplan=False) -> dict:
             "autoplan": {
                 "enabled": autoplan,
                 "when_modified": [
-                    "*.tf", "*.tf.json", "*.tfvars.json", ".terraform.lock.hcl",
-                    *(f"{repository}/{module}/**/*.tf" for module in modules),
+                    "*.tf", "*.tofu", "*.tf.json", "*.tofu.json", "*.tfvars.json", ".terraform.lock.hcl",
+                    *(f"{repository}/{module}/**/*.{extension}" for module in modules for extension in ("tf", "tofu", "tf.json", "tofu.json")),
                     f"{repository}/tools/quality.py", f"{repository}/mise.toml",
                     f"{repository}/.tflint.hcl", f"{repository}/atlantis.yaml",
                 ],

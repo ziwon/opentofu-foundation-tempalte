@@ -6,7 +6,7 @@ OpenTofu 실행 루트입니다. 해당 디렉터리에서 `tofu` 명령을 직�
 지원하는 CLI는 OpenTofu입니다.
 
 [English](README.md) · [구조](docs/architecture.md) · [클라우드 설정](docs/cloud-setup.md) ·
-[운영](docs/operations.md) · [마이그레이션](docs/migration.md) · [보안](SECURITY.md)
+[운영](docs/operations.md) · [보안](SECURITY.md)
 
 ## 기본 구조
 
@@ -21,7 +21,6 @@ live/dev/aws/network/core/        독립적인 OpenTofu 루트
   variables.tf                   입력 선언
   terraform.tfvars.json          비밀이 아닌 배포별 값
   outputs.tf                     배포 출력
-  migrations.tf                  기존 리소스 주소의 이동 선언
 stacks/aws/network/core/         루트가 호출하는 용도별 구성
 modules/context/                 공통 이름과 태그 규칙
 modules/<cloud>/<module>/        재사용할 핵심 구성 요소
@@ -74,7 +73,7 @@ tofu apply destroy.tfplan
 1. `live/<environment>/<cloud>/<group>/<stack>` 루트를 선택합니다.
 2. `terraform.tfvars.json`에 실제 계정, 구독, 프로젝트, 리전, 이름을 설정합니다.
 3. [bootstrap](docs/bootstrap.md)으로 상태 저장소를 만들거나 기존 저장소를 사용합니다.
-4. `backend.tf`의 저장소 예제 값을 바꿉니다. 기존 배포의 key나 prefix는 유지합니다.
+4. `backend.tf`의 저장소 예제 값을 바꿉니다. 명시적인 key나 prefix는 유지합니다.
 5. 클라우드의 기본 인증 방식을 사용합니다. 키, 토큰, 비밀번호는 Git에 넣지 않습니다.
 6. 검사를 실행하고 backend를 초기화한 뒤 저장된 plan을 검토합니다. 승인된 절차로 적용합니다.
 
@@ -123,16 +122,12 @@ Stack은 `var.context.id`, `var.context.tags`를 사용합니다.
 Provider 설정은 루트에 두고, 클라우드별 이름 변환은 리소스를 소유한 핵심 모듈에 둡니다.
 [이름과 태그](docs/context.md), [배포 추가](docs/adding-stacks.md)를 참고하세요.
 
-## 기존 상태 마이그레이션
+## 상태 위치
 
-로컬 및 bootstrap 상태 경로, S3와 Azure의 key, GCS의 prefix는 유지됩니다.
-기존 checkout을 업데이트하면서 `.infra/`를 삭제하면 안 됩니다.
-
-리소스는 `aws_vpc.this`에서 `module.stack.aws_vpc.this`와 같은 주소로 이동합니다.
-각 루트의 `migrations.tf`에 있는 `moved` 선언이 이 변경을 연결합니다.
-선언을 유지하고, 상태를 백업한 후 기존 상태에 대한 새 plan을 검토하세요.
-주소 이동만 있는 경우 리소스 생성, 수정, 교체, 삭제가 없어야 합니다.
-기존 plan은 재사용하지 않습니다. 자세한 절차는 [마이그레이션](docs/migration.md)에 있습니다.
+상태 위치는 각 루트의 `backend.tf`에 명시합니다. 로컬 및 bootstrap 상태는
+`.infra/state/<deployment>/terraform.tfstate`에 있습니다. S3와 Azure는
+`<deployment>/terraform.tfstate` key를, GCS는 `<deployment>` prefix를 사용합니다.
+`.infra/`를 삭제하면 로컬 및 bootstrap 상태도 삭제되므로 먼저 백업하세요.
 
 ## 검사와 배포 정책
 
@@ -151,9 +146,8 @@ mock plan, 로컬 수명주기를 검사합니다. 실제 scanner가 안전한 �
 위험하거나 인식하지 못한 입력은 거부하는지도 확인합니다. 클라우드 테스트는 plan만
 만들며 실제 적용과 삭제는 임시 로컬 `terraform_data`에 한정합니다.
 
-Native 로컬 명령에는 이전 실행기의 소스 fingerprint, plan receipt, 정확한 배포 이름
-확인, 자동 보안 검사, plan 정리가 없습니다. 저장된 plan의 apply에는 확인 질문도 없습니다.
-이는 명시적인 정책 변경입니다. 필수 보안 검사와 승인은 신뢰할 수 있는 배포 자동화에서
+Native 로컬 명령에는 승인 확인이나 자동 보안 검사가 없습니다. 저장된 plan의
+apply에는 확인 질문도 없습니다. 필수 보안 검사와 승인은 신뢰할 수 있는 배포 자동화에서
 강제해야 합니다. [보안 정책](SECURITY.md)과 [품질 검사](docs/quality.md)를 참고하세요.
 
 선택형 [Atlantis 연동](docs/atlantis.md)은 built-in `init`, `plan`, `apply`와

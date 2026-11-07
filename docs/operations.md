@@ -18,9 +18,8 @@ Review the complete plan and obtain your deployment approval before applying it:
 tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 ```
 
-Applying a saved plan has no confirmation prompt. Native commands do not enforce
-the former repository fingerprints, receipts, exact-name prompt, or automatic
-security scans. Use [trusted automation](atlantis.md) when those scans and approvals
+Applying a saved plan has no confirmation prompt. Native commands run no
+approval checks or automatic security scans. Use [trusted automation](atlantis.md) when those scans and approvals
 must be enforced. The [quality helper](quality.md) can also scan a local source tree
 and saved plan explicitly.
 
@@ -95,9 +94,7 @@ OpenTofu is the supported CLI.
 
 ## Change a backend
 
-A layout migration that preserves storage identity follows the
-[native-root migration guide](migration.md). Moving state to different storage is
-a separate operation.
+To move a root's state to different storage:
 
 1. Stop concurrent operations and obtain authorization for the state migration.
 2. Back up the current state securely and verify the old and new storage identities.

@@ -44,9 +44,8 @@ The stack layer separates purpose from implementation. A state-bucket stack and 
 data-bucket stack can call one bucket module with different settings. A fix to that
 module then reaches both stacks without an edit to either root.
 
-The `stacks/` directory holds no executable roots. It is not the shared executable
-`stacks/` layout that the [migration guide](migration.md) replaces. Those
-directories had their own backends and providers and ran directly.
+The `stacks/` directory holds no executable roots, backends, or state. Run `tofu`
+only in a `live/` root.
 
 ## Shared names and tags
 
@@ -77,21 +76,19 @@ S3 uses lock files, Azure uses Blob leases, and GCS uses native state locking.
 Initialization connects to existing storage. [Bootstrap roots](bootstrap.md)
 provision storage separately and retain independent local state.
 
-Backend identity and resource address are separate concerns. The move into
-`module "stack"` changes `aws_vpc.this` to `module.stack.aws_vpc.this`, for example. Root-owned
-`migrations.tf` files declare these moves while preserving the backend location.
-See the [migration guide](migration.md).
+Backend identity and resource address are separate concerns. Moving a resource
+into another module changes its address but not its backend location. Add a `moved`
+block when you move a resource that already exists in state.
 
 ## Native operations and automation policy
 
 Each root has its own `.terraform/` working directory. Saved plans belong to the
-chosen root or the automation system's plan path. Ordinary native commands do not
-require a Python process, receipt, generated backend file, or command lock.
+chosen root or the automation system's plan path. Ordinary native commands need
+no Python process or generated backend file.
 Use the default workspace and avoid hidden variable or CLI overrides when applying
 reviewed deployment values. Native OpenTofu accepts its standard flags and environment variables.
 
-The former runner's source fingerprints, exact-name prompt, automatic scans, and
-artifact cleanup are retired. A native saved-plan apply checks state compatibility
+A native saved-plan apply checks state compatibility
 but does not prove that the current checkout is unchanged or that a human approved
 that artifact. Operators must review plans and regenerate them after source or policy changes.
 

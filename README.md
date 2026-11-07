@@ -23,7 +23,6 @@ live/dev/aws/network/core/       executable deployment root
   variables.tf                  root inputs
   terraform.tfvars.json         non-secret deployment values
   outputs.tf                    deployment outputs
-  migrations.tf                 previous resource addresses
 stacks/aws/network/core/        purpose-specific composition the root calls
 modules/context/                name and tag convention
 modules/<cloud>/<module>/       reusable core building blocks
@@ -108,17 +107,12 @@ object with `id` and `tags`. The stack composes resources, and the core modules
 it calls own cloud-specific name rules. Providers remain in the root. See [names and tags](docs/context.md)
 and [adding deployments](docs/adding-stacks.md).
 
-## State and migration
+## State
 
 State identity is explicit in each root's `backend.tf`. Local and bootstrap state
-remain under `.infra/state/<deployment>/terraform.tfstate`. Remote workloads keep
+live under `.infra/state/<deployment>/terraform.tfstate`. Remote workloads use
 `<deployment>/terraform.tfstate` keys for S3 and Azure, or `<deployment>` prefixes
-for GCS. Do not delete `.infra/` when updating an existing checkout.
-
-Existing deployments need the checked-in `moved` blocks because resource addresses
-now begin with `module.stack`. Follow the [native-root migration guide](docs/migration.md)
-before applying an upgraded checkout. Keep provider registry addresses and lock
-selections unchanged during that migration.
+for GCS. Deleting `.infra/` deletes local and bootstrap state, so back it up first.
 
 ## Verification and CI
 
@@ -140,10 +134,9 @@ acceptance. Cloud tests are plan-only and use mocks or isolated fake credentials
 Actual fixture applies and destroys use local `terraform_data` resources.
 See [verification scope](docs/verification.md) for commands and limits.
 
-Native local commands do not enforce the former checkout fingerprints, plan
-receipts, exact-deployment-name prompts, or automatic scans. This is a deliberate
-policy change. Trusted deployment automation must retain source and saved-plan
-security checks, approvals, and restrictions on untrusted code.
+Native local commands run no approval prompts or automatic scans. Trusted
+deployment automation must run the source and saved-plan security checks, require
+approvals, and restrict untrusted code.
 The optional [Atlantis integration](docs/atlantis.md) uses built-in `init`, `plan`,
 and `apply` with explicit quality steps and server-owned approval requirements.
 

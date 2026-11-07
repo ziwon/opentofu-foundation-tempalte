@@ -6,7 +6,7 @@ import re
 import tempfile
 import unittest
 
-from test_layout import copy_local_template
+from test_layout import add_real_world_stack, copy_local_template
 from tools import atlantis
 
 REPOSITORY = "../../../../.."
@@ -31,6 +31,8 @@ class AtlantisProjectsTests(unittest.TestCase):
             stack = "/".join(project["name"].split("/")[1:])
             self.assertIn(f"{REPOSITORY}/modules/context/**/*.tf", patterns)
             self.assertIn(f"{REPOSITORY}/stacks/{stack}/**/*.tf", patterns)
+            self.assertIn("*.tofu", patterns)
+            self.assertIn(f"{REPOSITORY}/stacks/{stack}/**/*.tofu", patterns)
         self.assertFalse(document["automerge"])
         self.assertFalse(document["parallel_apply"])
         self.assertEqual(document["autodiscover"]["mode"], "disabled")
@@ -44,16 +46,11 @@ class AtlantisProjectsTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 atlantis.configuration(atlantis.ROOT, [name])
 
-    def test_projects_watch_every_core_module_their_stack_reaches(self):
+    def test_projects_watch_every_local_module_a_real_world_stack_reaches(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             copy_local_template(root)
-            for name, body in {"label": 'module "part" {\n  source = "../part"\n}\n',
-                               "part": 'resource "terraform_data" "part" {}\n'}.items():
-                (root / "modules/local" / name).mkdir(parents=True)
-                (root / "modules/local" / name / "main.tf").write_text(body)
-            stack = root / "stacks/local/foundation/catalog/main.tf"
-            stack.write_text(stack.read_text() + '\nmodule "label" {\n  source = "../../../../modules/local/label"\n}\n')
+            add_real_world_stack(root)
             project, = atlantis.configuration(root, ["dev/local/foundation/catalog"])["projects"]
             watched = {pattern for pattern in project["autoplan"]["when_modified"] if pattern.endswith("/**/*.tf")}
             self.assertEqual(watched, {f"{REPOSITORY}/{module}/**/*.tf" for module in (

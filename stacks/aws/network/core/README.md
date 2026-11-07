@@ -6,6 +6,5 @@ Provider configuration and backend state belong to the calling root.
 
 The VPC, private subnet, and default security group live in the core module
 [`modules/aws/vpc`](../../../../modules/aws/vpc), called as `module "vpc"`.
-`migrations.tf` moves them from this stack into it.
 
 Run plan-only mocked checks with `tofu init -backend=false` and `tofu test`.

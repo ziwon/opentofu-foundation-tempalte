@@ -60,10 +60,10 @@ Include these root files:
 - `terraform.tfvars.json` with reviewed non-secret values.
 - `.terraform.lock.hcl` for external provider selections.
 - Plan-only tests for deployment wiring and input behavior. Cloud roots mock their providers.
-- `migrations.tf` when existing resource addresses move.
 
-When a resource's address changes, add a `moved` block in the module that now
-declares the new address. Write `from` and `to` relative to that module. For
+When you change the address of a resource that already exists in state, add a
+`moved` block in the module that now declares the new address. Write `from` and
+`to` relative to that module. For
 example, moving `aws_vpc.this` into a nested `module "vpc"` of the stack
 needs this block in the stack:
 
@@ -74,12 +74,8 @@ moved {
 }
 ```
 
-Keep the earlier moves. The root's `moved` block still takes the shared-root
-address to `module.stack.aws_vpc.this`, and the stack's block continues
-the chain. The layout check fails when any address in
-`tools/legacy-addresses.json` stops before a declared resource. New resources
-need no moves. The check rejects `count`, `for_each`, and non-local module
-sources because it cannot trace their addresses.
+New resources need no `moved` block. Stacks and core modules may use registry
+modules, `count`, `for_each`, and `.tofu` files.
 
 Test resource behavior within the stack and deployment behavior from the
 root. Keep assertions meaningful for encryption, private networking, retention,
@@ -108,22 +104,9 @@ module "catalog" {
 }
 ```
 
-Moving a resource from a stack into a core module changes its address. Add the
-`moved` block to the stack, in `migrations.tf`, and leave the root's moves unchanged:
-
-```hcl
-moved {
-  from = terraform_data.catalog
-  to   = module.catalog.terraform_data.catalog
-}
-```
-
-State at the shared-root address `terraform_data.catalog` follows the root's move and
-then the stack's move. State at `module.stack.terraform_data.catalog` follows only the
-stack's move. Both end at `module.stack.module.catalog.terraform_data.catalog`.
-`python3 tools/migration_smoke.py` applies both starting states with OpenTofu and
-requires a no-op move. Keep the resource's arguments and their types unchanged when
-you move it. A value of a different type, such as a map where state recorded an
+Moving a resource from a stack into a core module changes its address, as in the
+`aws_vpc.this` example above. Keep the resource's arguments and their types unchanged
+when you move it. A value of a different type, such as a map where state recorded an
 object, plans an update even when the JSON looks equal.
 
 Add tests under the module's `tests/` directory. Cloud module tests plan against
@@ -137,7 +120,7 @@ roots whose stacks call it.
 ## Add a cloud or backend
 
 Native OpenTofu owns backend configuration and authentication. A new backend type
-does not need a deployment runner extension. Declare the backend explicitly in
+needs no repository code. Declare the backend explicitly in
 the root and review its locking, access, and recovery behavior.
 
 Review scanner coverage for a new provider. Add an available cloud linter plugin

@@ -12,8 +12,10 @@
 - Run `python3 tools/check.py` and relevant local fixture tests. Support OpenTofu only.
 - Run `python3 tools/quality_smoke.py` for security or lint changes. Scanner errors,
   unrecognized reports, and unsafe saved plans must fail trusted automation.
-- Native local commands do not enforce repository fingerprints or approval prompts.
-  Keep approval requirements and source/saved-plan scans in trusted deployment automation.
+- Native local commands do not enforce scans or approvals. Keep approval
+  requirements and source/saved-plan scans in trusted deployment automation.
+- Nothing is deployed from this template itself. Do not add `moved` blocks or
+  state-migration tooling for its own refactors.
 - Bootstrap uses independent local state and is excluded from Atlantis workloads.
   Preserve deletion protection and non-secret backend outputs.
 - Cloud tests stay plan-only. Cloud apply, destroy, state migration, and provisioning
