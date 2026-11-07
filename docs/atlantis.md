@@ -53,8 +53,10 @@ make an untrusted plan safe.
 
 The quality helper, its tool pins, and its lint rules come from the PR checkout.
 A PR can change the policy that checks it. The plan stage runs that changed policy.
-Code Owner review closes the apply stage. GitHub does not report the PR as mergeable
-until the owning team approves, so the `mergeable` requirement blocks apply. See [Atlantis security](https://www.runatlantis.io/docs/security.html).
+Code Owner review protects the policy files in the reviewed commit. GitHub does not
+report the PR as mergeable until the owning team approves, so the `mergeable`
+requirement blocks apply. Plan-stage code runs in the same checkout and can still
+change files on disk before apply. See [Atlantis security](https://www.runatlantis.io/docs/security.html).
 
 ## Activate selected deployments
 

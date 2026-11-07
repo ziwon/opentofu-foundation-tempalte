@@ -73,12 +73,14 @@ class AtlantisProjectsTests(unittest.TestCase):
         repos = (atlantis.ROOT / "integrations/atlantis/repos.yaml.example").read_text()
         executed = set(re.findall(r"run: python3 (?:\.\./){5}(\S+)", repos))
         self.assertIn("tools/quality.py", executed)
-        policy = executed | {"mise.toml", ".tflint.hcl", "atlantis.yaml",
+        policy = executed | {"tools/", "mise.toml", ".tflint.hcl", "atlantis.yaml",
+                             "integrations/atlantis/mise.toml",
                              ".github/CODEOWNERS", ".github/workflows/check.yml"}
         text = (atlantis.ROOT / ".github/CODEOWNERS").read_text()
         rules = [line.split() for line in text.splitlines() if line.strip() and not line.startswith("#")]
         for pattern, *_ in rules:
-            self.assertTrue(pattern.startswith("/"), f"Use anchored CODEOWNERS patterns: {pattern}")
+            self.assertTrue(pattern.startswith("/") and not set("*?[") & set(pattern),
+                            f"Use anchored CODEOWNERS paths without globs: {pattern}")
         for path in sorted(policy):
             matches = [owners for pattern, *owners in rules
                        if (path.startswith(pattern[1:]) if pattern.endswith("/") else path == pattern[1:])]
