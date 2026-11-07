@@ -33,9 +33,17 @@ def check(root: Path):
         if not re.search(r'source\s*=\s*"' + re.escape(source) + '"', (directory / "main.tf").read_text()):
             raise ValueError(f"Root does not call its resource module: {deployment}")
         backend = (directory / "backend.tf").read_text()
-        kind = re.search(r'backend\s+"([^"]+)"', backend).group(1)
-        attribute = {"local": "path", "s3": "key", "azurerm": "key", "gcs": "prefix"}[kind]
-        actual = re.search(r'\b' + attribute + r'\s*=\s*"([^"]+)"', backend).group(1)
+        block = re.search(r'backend\s+"([^"]+)"', backend)
+        if not block:
+            raise ValueError(f"Missing backend block: {deployment}")
+        kind = block.group(1)
+        attribute = {"local": "path", "s3": "key", "azurerm": "key", "gcs": "prefix"}.get(kind)
+        if not attribute:
+            raise ValueError(f"Unsupported backend kind {kind!r}: {deployment}")
+        identity = re.search(r'\b' + attribute + r'\s*=\s*"([^"]+)"', backend)
+        if not identity:
+            raise ValueError(f"Missing backend {attribute!r} attribute: {deployment}")
+        actual = identity.group(1)
         expected = deployment.as_posix() + ("" if kind == "gcs" else "/terraform.tfstate")
         if kind == "local":
             expected = "../../../../../.infra/state/" + expected
