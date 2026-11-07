@@ -44,8 +44,6 @@ jobs:
       - name: Real CLI lifecycle with local-only resources
         run: python3 tools/smoke.py
       - name: Baseline state migration with local-only resources
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: python3 tools/migration_smoke.py
       - name: Real linter and scanner acceptance and rejection checks
         env:
