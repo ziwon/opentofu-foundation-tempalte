@@ -48,6 +48,21 @@ class SuppressionTests(unittest.TestCase):
                 with self.assertRaisesRegex(QualityError, "suppressions"):
                     reject_suppressions(root, plan)
 
+    def test_rejects_inline_suppressions_in_tofu_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            module = root / "stacks/aws/network/core"
+            module.mkdir(parents=True)
+            (module / "main.tofu").write_bytes(b"#trivy:ignore:*\nresource \"aws_vpc\" \"this\" {}\n")
+            with self.assertRaisesRegex(QualityError, "stacks/aws/network/core/main.tofu"):
+                reject_suppressions(root, None)
+            plan = root / "fixture.tfplan"
+            with zipfile.ZipFile(plan, "w") as archive:
+                archive.writestr("tfplan", b"")
+                archive.writestr("tfconfig/m-stack/main.tofu", b"#trivy:ignore:*")
+            with self.assertRaisesRegex(QualityError, "suppressions"):
+                reject_suppressions(root, plan)
+
     def test_accepts_clean_configuration_and_ignores_local_caches(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

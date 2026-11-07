@@ -31,6 +31,8 @@ class AtlantisProjectsTests(unittest.TestCase):
             stack = "/".join(project["name"].split("/")[1:])
             self.assertIn(f"{REPOSITORY}/modules/context/**/*.tf", patterns)
             self.assertIn(f"{REPOSITORY}/stacks/{stack}/**/*.tf", patterns)
+            self.assertIn("*.tofu", patterns)
+            self.assertIn(f"{REPOSITORY}/stacks/{stack}/**/*.tofu", patterns)
         self.assertFalse(document["automerge"])
         self.assertFalse(document["parallel_apply"])
         self.assertEqual(document["autodiscover"]["mode"], "disabled")
