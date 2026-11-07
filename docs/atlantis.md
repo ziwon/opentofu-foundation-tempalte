@@ -70,8 +70,10 @@ its `PATH`. A mise or asdf shim selects its version from configuration in the cu
 directory, which is the PR checkout. A PR could then replace the scanner. The helper
 checks the version that each tool reports, but it cannot prove that the executable is genuine.
 
-The saved plan is the final proof. The apply stage scans source and the same saved
-`PLANFILE` before the built-in apply step, and OpenTofu applies only that plan.
+Review the saved plan before you approve apply. The apply stage scans source and the
+same saved `PLANFILE` before the built-in apply step, and OpenTofu applies only that
+plan. The scan and the review assume that nothing changed the plan file after planning.
+Plan-stage code runs in the same checkout, so that assumption rests on the controls above.
 Fork PRs stay disabled because a fork author is outside the trusted repository and
 author boundary. See [Atlantis security](https://www.runatlantis.io/docs/security.html).
 
