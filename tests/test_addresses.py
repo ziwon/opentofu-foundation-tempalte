@@ -191,3 +191,35 @@ class LiteralTests(unittest.TestCase):
                     continue
                 except Exception as error:
                     self.fail(f"{type(error).__name__}: {error}")
+
+
+class SourcePathTests(unittest.TestCase):
+    """Sources are read as written: no string rewriting, no mid-path parents, no symlinks."""
+
+    def trace(self, root, source):
+        (root / "m").mkdir(exist_ok=True)
+        (root / "m/main.tf").write_text('resource "terraform_data" "x" {}\n')
+        (root / "main.tf").write_text(f'module "m" {{\n  source = "{source}"\n}}\nmoved {{\n  from = terraform_data.x\n  to   = module.m.terraform_data.x\n}}\n')
+        verify_continuity(["terraform_data.x"], *managed_addresses(root))
+
+    def test_braces_and_mid_path_parents_are_rejected(self):
+        for source in ("./m{}", "./m}", "./m/../m", "./m/."):
+            with self.subTest(source), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                (root / source[2:]).mkdir(parents=True, exist_ok=True)
+                with self.assertRaisesRegex(ValueError, "Cannot trace"):
+                    self.trace(root, source)
+
+    def test_symlinked_module_directories_are_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "store/m").mkdir(parents=True)
+            (root / "store/m/main.tf").write_text('resource "terraform_data" "x" {}\n')
+            (root / "link").symlink_to(root / "store")
+            (root / "main.tf").write_text('module "m" {\n  source = "./link/m"\n}\nmoved {\n  from = terraform_data.x\n  to   = module.m.terraform_data.x\n}\n')
+            with self.assertRaisesRegex(ValueError, "Cannot trace"):
+                verify_continuity(["terraform_data.x"], *managed_addresses(root))
+
+    def test_plain_sources_still_trace(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            self.trace(Path(temporary), "./m")
