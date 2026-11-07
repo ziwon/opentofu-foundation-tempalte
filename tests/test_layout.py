@@ -127,3 +127,21 @@ class AddressContinuityTests(unittest.TestCase):
             "moved {\n  from = terraform_data.catalog\n  to   = module.entry.terraform_data.catalog\n}\n")
         result = check_layout(self.root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_renamed_stack_cannot_skip_legacy_addresses(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            copy_local_template(root)
+            for base in ("modules/local/foundation", "live/dev/local/foundation"):
+                (root / base / "catalog").rename(root / base / "register")
+            directory = root / "live/dev/local/foundation/register"
+            (directory / "migrations.tf").unlink()
+            for name in ("main.tf", "backend.tf"):
+                path = directory / name
+                path.write_text(path.read_text().replace("/catalog", "/register"))
+            atlantis.write_configuration(atlantis.configuration(root), root / atlantis.EXAMPLE)
+            result = subprocess.run([sys.executable, str(root / "tools/check_layout.py")],
+                                    cwd=root, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("local/foundation/catalog", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
