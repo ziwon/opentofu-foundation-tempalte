@@ -7,6 +7,8 @@
 - Azure storage account names that exceed 18 characters after hyphen removal now
   hash the full deployment ID. Shorter names do not change. Existing accounts with
   longer names plan a replacement, which `prevent_destroy` blocks.
+- GCP bucket and bootstrap state bucket plans fail when the deployment ID plus
+  project ID exceeds 63 characters. The GCS API previously rejected these at apply.
 - Native OpenTofu roots for all 30 live deployments. Ordinary init, plan, apply,
   output, and state operations no longer require repository Python.
 - Shared resources moved into `modules/<cloud>/<group>/<stack>`. Roots retain
