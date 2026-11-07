@@ -121,6 +121,9 @@ def module_directory(directory: Path, source: str) -> Path:
 
 def managed_addresses(directory: Path, prefix: str = "") -> tuple[set[str], list[tuple[str, str]]]:
     """Return absolute resource addresses and moves for a root and every local module it calls."""
+    if not prefix:
+        # OpenTofu runs in the physical directory, so parent segments climb from there.
+        directory = Path(os.path.realpath(directory))
     unread = sorted(path.name for pattern in UNREAD for path in directory.glob(pattern))
     if unread:
         raise ValueError(f"Cannot trace {directory.name} with {', '.join(unread)}")

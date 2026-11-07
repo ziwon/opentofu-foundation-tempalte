@@ -47,8 +47,10 @@ The check reads a small HCL subset and rejects everything outside it. It rejects
 or leading `../` segments followed by plain names, symlinked module directories,
 block labels that are not identifiers, heredocs, template directives, escaped interpolations, whitespace other than
 spaces, tabs, and line feeds, override files, and `.tofu` or `.tf.json` files. It
-ignores comments and hidden files, as OpenTofu does. The check catches missing or
-wrong moves in ordinary configuration. It is not proof against configuration written
+ignores comments and hidden files, as OpenTofu does, and climbs parent segments
+from the physical root directory. The check catches missing or wrong moves in
+ordinary configuration. It checks addresses only, so it cannot see an attribute
+change that forces a replacement. It is not proof against configuration written
 to mislead it. Before applying a migrated root, confirm that its saved plan has no
 destroy or replace actions.
 It does not know about resources you added to your own copy of the old layout.
