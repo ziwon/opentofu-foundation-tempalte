@@ -113,7 +113,9 @@ python3 tools/atlantis.py --output integrations/atlantis/atlantis.yaml.example -
 ```
 
 `python3 tools/check.py` checks the default example. Watch patterns cover root HCL,
-inputs, provider locks, local module HCL, quality policy, tool pins, and active configuration.
+inputs, provider locks, the HCL of every local module the root reaches (its stack,
+`modules/context`, and any core modules the stack calls), quality policy, tool pins,
+and active configuration.
 See the [integration reference](../integrations/atlantis/README.md).
 
 ## Verify without cloud credentials

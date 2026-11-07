@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Stacks moved from `modules/<cloud>/<group>/<stack>` to `stacks/<cloud>/<group>/<stack>`.
+  A stack is the purpose-specific composition that a root calls as `module "stack"`.
+  `modules/` now holds reusable core building blocks and `modules/context`. Resource
+  addresses, `moved` blocks, and plans do not change. Run `tofu init` again in existing
+  working directories, because the `module "stack"` source path changed. This `stacks/`
+  layer holds no backends or state. It differs from the shared executable `stacks/`
+  layout that native roots replaced.
+- `tools/check.py` runs the tests of every stack and of every core module that has a
+  `tests/` directory. Atlantis projects watch every local module their root reaches.
 - The layout check requires every managed address from the shared-root layout,
   frozen in `tools/legacy-addresses.json`, to reach a distinct current resource
   through `moved` blocks. It follows local module calls at every depth. A missing

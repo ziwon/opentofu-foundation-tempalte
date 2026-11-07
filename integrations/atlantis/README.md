@@ -28,8 +28,9 @@ Bootstrap is always excluded. Regenerate with the same selection and autoplan op
 
 Each project uses its deployment ID as its name, `live/<ID>` as its directory,
 the default workspace, and the pinned OpenTofu distribution and version.
-Watch patterns include the root's HCL, input JSON, provider lock, dependent local
-modules, quality helper and policy, tool pins, and active Atlantis configuration.
+Watch patterns include the root's HCL, input JSON, provider lock, every local module
+the root reaches through module calls, quality helper and policy, tool pins, and
+active Atlantis configuration.
 
 ## Native workflow
 

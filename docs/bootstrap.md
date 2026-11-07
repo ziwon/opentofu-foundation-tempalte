@@ -1,8 +1,8 @@
 # Bootstrap remote state storage
 
 Bootstrap roots create state storage independently of workloads. They live under
-`live/<environment>/<cloud>/bootstrap/state` and call reusable compositions under
-`modules/<cloud>/bootstrap/state`. Use ordinary native OpenTofu commands in these
+`live/<environment>/<cloud>/bootstrap/state` and call the stacks under
+`stacks/<cloud>/bootstrap/state`. Use ordinary native OpenTofu commands in these
 roots. Initialization connects to a backend and never provisions storage by itself.
 
 | Cloud | Created resources and protections |

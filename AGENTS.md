@@ -1,9 +1,10 @@
 # Working in this template
 
 - Keep executable OpenTofu roots in `live/<environment>/<cloud>/<group>/<stack>`.
-  Keep reusable resources in `modules/<cloud>/<group>/<stack>` and shared naming in `modules/context`.
+  Each root calls one purpose-specific stack in `stacks/<cloud>/<group>/<stack>` as `module "stack"`.
+  Keep reusable core building blocks in `modules/` and shared naming in `modules/context`.
 - Roots own backends, provider configuration, inputs, outputs, and provider locks.
-  Modules declare provider requirements but never configure providers or backends.
+  Stacks and modules declare provider requirements but never configure providers or backends.
 - Keep each root directly usable with native `tofu` commands. Python may check,
   generate examples, or inspect scanner reports. It must not orchestrate ordinary deployments.
 - Preserve explicit backend identities and the default workspace. Local and bootstrap

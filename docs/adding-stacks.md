@@ -1,4 +1,4 @@
-# Add a deployment or resource composition
+# Add a deployment, stack, or core module
 
 ## Add an environment
 
@@ -20,10 +20,12 @@ Do not copy `.terraform/`, state, or saved plans.
 Copying HCL does not create a separate state unless the backend identity changes.
 Keep the default workspace and verify the selected backend before applying.
 
-## Add a resource composition
+## Add a stack
 
-Put shared resources under `modules/<cloud>/<group>/<stack>`. Declare only the
-inputs consumed by those resources, including the common typed context:
+Put the resources for a new kind of deployment in a stack under
+`stacks/<cloud>/<group>/<stack>`. Every stack needs at least one root, and the
+layout check fails for a stack that no root calls. Declare only the inputs consumed
+by those resources, including the common typed context:
 
 ```hcl
 variable "context" {
@@ -35,12 +37,13 @@ variable "context" {
 }
 ```
 
-Modules declare provider requirements but do not configure providers, choose cloud
+Stacks declare provider requirements but do not configure providers, choose cloud
 identities, or declare backends. Put cloud-specific naming and resource relationships
-in the composition. Return outputs that callers need.
+in the stack. Return outputs that callers need.
 
-Create a live root that calls `modules/context` in `context.tf` and the composition
-as `module "stack"` in `main.tf`. Pass `module.context.id` and
+Create a live root that calls `modules/context` in `context.tf` and the stack
+as `module "stack"` in `main.tf` with
+`source = "../../../../../stacks/<cloud>/<group>/<stack>"`. Pass `module.context.id` and
 `module.context.tags` as the context input. Keep account and region selection in
 the root's provider configuration.
 
@@ -55,8 +58,8 @@ Include these root files:
 
 When a resource's address changes, add a `moved` block in the module that now
 declares the new address. Write `from` and `to` relative to that module. For
-example, moving `aws_vpc.this` into a nested `module "vpc"` of the composition
-needs this block in the composition:
+example, moving `aws_vpc.this` into a nested `module "vpc"` of the stack
+needs this block in the stack:
 
 ```hcl
 moved {
@@ -66,16 +69,31 @@ moved {
 ```
 
 Keep the earlier moves. The root's `moved` block still takes the shared-root
-address to `module.stack.aws_vpc.this`, and the composition's block continues
+address to `module.stack.aws_vpc.this`, and the stack's block continues
 the chain. The layout check fails when any address in
 `tools/legacy-addresses.json` stops before a declared resource. New resources
 need no moves. The check rejects `count`, `for_each`, and non-local module
 sources because it cannot trace their addresses.
 
-Test resource behavior within the composition and deployment behavior from the
+Test resource behavior within the stack and deployment behavior from the
 root. Keep assertions meaningful for encryption, private networking, retention,
 identity, names, and tags. A root cannot directly inspect a child module's private
-resources. Use a module test or an intentional output for that assertion.
+resources. Use a stack test or an intentional output for that assertion.
+`tools/check.py` runs each stack's tests with the provider lock of its dev root.
+
+## Add a core module
+
+Put a building block that several stacks share under `modules/<cloud>/<name>`.
+Core modules follow the same rules as stacks. They declare provider requirements,
+configure no providers or backends, and take only the inputs they consume. Call a
+core module from a stack with a local source such as
+`source = "../../../../modules/aws/<name>"`.
+
+Add mocked plan-only tests under the module's `tests/` directory. `tools/check.py`
+runs them with the provider lock of any dev root for the same cloud. Regenerate the
+Atlantis project example afterward. Each project watches every local module that
+its root reaches, so the new module appears in the `when_modified` patterns of the
+roots whose stacks call it.
 
 ## Add a cloud or backend
 
