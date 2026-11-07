@@ -20,7 +20,10 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/legacy-local"
 DEPLOYMENTS = ("dev/local/foundation/catalog", "prod/local/foundation/catalog")
 OLD_ADDRESS = "terraform_data.catalog"
-NEW_ADDRESS = "module.stack.terraform_data.catalog"
+NATIVE_ADDRESS = "module.stack.terraform_data.catalog"
+NEW_ADDRESS = "module.stack.module.catalog.terraform_data.catalog"
+# dev migrates from the shared-root layout; prod from a native root applied before the core module.
+STARTS = {DEPLOYMENTS[0]: OLD_ADDRESS, DEPLOYMENTS[1]: NATIVE_ADDRESS}
 
 
 @dataclass(frozen=True)
@@ -108,6 +111,12 @@ def verify(root: Path, artifacts: Path | None) -> None:
             for deployment in DEPLOYMENTS:
                 native = repository / "live" / deployment
                 run([tofu, "init", "-input=false"], cwd=native, env=env, log=log)
+                start = STARTS[deployment]
+                if start != OLD_ADDRESS:
+                    run([tofu, "state", "mv", OLD_ADDRESS, start], cwd=native, env=env, log=log)
+                require(run([tofu, "state", "list"], cwd=native, env=env, log=log).strip() == start,
+                        f"Unexpected starting state address for {deployment}")
+                report["deployments"][deployment]["start"] = start
                 run([tofu, "validate"], cwd=native, env=env, log=log)
                 plan = Path(temporary) / f"{deployment.split('/')[0]} migration.tfplan"
                 run([tofu, "plan", "-input=false", f"-out={plan}"], cwd=native, env=env, log=log)
@@ -119,8 +128,9 @@ def verify(root: Path, artifacts: Path | None) -> None:
                         f"Migration changed the managed-resource inventory for {deployment}: {list(changes)}")
                 report["deployments"][deployment]["resource_changes"] = list(changes.values())
                 change = changes[NEW_ADDRESS]
-                require(change.get("previous_address") == OLD_ADDRESS,
-                        f"Missing catalog address move for {deployment}")
+                require(change.get("previous_address") == start,
+                        f"Expected a catalog move from {start} for {deployment}, "
+                        f"got {change.get('previous_address')}")
                 require(change["change"]["actions"] == ["no-op"],
                         f"Migration would change a resource for {deployment}: {change['change']['actions']}")
                 require(change["change"]["before"] == change["change"]["after"] ==
@@ -140,7 +150,7 @@ def verify(root: Path, artifacts: Path | None) -> None:
                         f"Migration changed outputs for {deployment}")
                 state = repository / ".infra/state" / deployment / "terraform.tfstate"
                 stored = json.loads(state.read_text())
-                require(stored["resources"][0].get("module") == "module.stack",
+                require(stored["resources"][0].get("module") == "module.stack.module.catalog",
                         f"Native root did not migrate the original state file for {deployment}")
                 require(run([tofu, "state", "list"], cwd=native, env=env, log=log).strip() == NEW_ADDRESS,
                         f"Unexpected native state address for {deployment}")
@@ -165,7 +175,8 @@ def verify(root: Path, artifacts: Path | None) -> None:
             artifacts.mkdir(parents=True, exist_ok=True)
             (artifacts / "migration.log").write_text("\n".join(log))
             (artifacts / "migration.json").write_text(json.dumps(report, indent=2) + "\n")
-    print(f"Native migration passed from {BASELINE}: dev/prod moves are no-op, "
+    print(f"Native migration passed from {BASELINE}: dev moves from {OLD_ADDRESS} and prod from "
+          f"{NATIVE_ADDRESS} to {NEW_ADDRESS} as no-ops, "
           "IDs and outputs unchanged, original states destroyed, no runner files required")
 
 
