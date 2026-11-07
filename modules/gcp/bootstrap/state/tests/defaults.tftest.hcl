@@ -20,3 +20,24 @@ run "private_versioned_storage" {
     error_message = "Retain object versions and refuse deletion of nonempty buckets."
   }
 }
+
+run "bucket_name_at_limit" {
+  command = plan
+  variables {
+    project_id = "example-project-abcdefghijklmn"
+    context    = { "id" : "starter-fixture-development-0001", "tags" : {} }
+  }
+  assert {
+    condition     = length(google_storage_bucket.this.name) == 63
+    error_message = "A 63-character bucket name must plan."
+  }
+}
+
+run "bucket_name_over_limit" {
+  command = plan
+  variables {
+    project_id = "example-project-abcdefghijklmn"
+    context    = { "id" : "starter-fixture-development-00001", "tags" : {} }
+  }
+  expect_failures = [google_storage_bucket.this]
+}

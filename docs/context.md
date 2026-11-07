@@ -33,6 +33,8 @@ remove hyphens from the ID and keep its first 18 characters. If the ID fits, the
 suffix is 6 characters of the subscription ID hash. If it is truncated, the suffix
 hashes the subscription and the full ID, so environments in one subscription stay distinct.
 
+GCS bucket names are the ID plus the project ID, and a plan fails if the total exceeds 63 characters.
+
 ## Provider and resource tags
 
 AWS provider defaults receive the common tags from the root:
