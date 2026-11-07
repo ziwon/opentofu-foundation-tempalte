@@ -12,6 +12,11 @@ plan deployment:
 destroy-plan deployment:
     tofu -chdir="live/$1" plan -destroy -out=plan.tfplan
 
+cost deployment:
+    mkdir -p ".infra/cost/$1"
+    tofu -chdir="live/$1" show -json plan.tfplan > ".infra/cost/$1/plan.json"
+    infracost breakdown --path ".infra/cost/$1/plan.json"
+
 apply deployment:
     tofu -chdir="live/$1" apply plan.tfplan
 
