@@ -32,6 +32,10 @@ variable "location" {
 variable "subscription_id" {
   description = "Explicit Azure subscription; no ambient default subscription is used."
   type        = string
+  validation {
+    condition     = can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", var.subscription_id))
+    error_message = "Provide a subscription UUID."
+  }
 }
 
 variable "tags" {

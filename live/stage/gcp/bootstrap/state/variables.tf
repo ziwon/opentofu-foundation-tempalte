@@ -20,6 +20,10 @@ variable "region" {
 variable "project_id" {
   description = "Explicit GCP project; credentials must have access to it."
   type        = string
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.project_id))
+    error_message = "Provide a valid GCP project ID."
+  }
 }
 
 variable "tags" {

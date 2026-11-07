@@ -20,6 +20,10 @@ variable "region" {
 variable "aws_account_id" {
   description = "Expected AWS account; the provider rejects credentials for another account."
   type        = string
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.aws_account_id))
+    error_message = "An AWS account ID contains 12 digits."
+  }
 }
 
 variable "tags" {

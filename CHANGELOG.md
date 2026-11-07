@@ -2,11 +2,11 @@
 
 ## Unreleased
 
-- Roots no longer repeat input validations that `modules/context` or their stack
-  already applies to the same value. Invalid names, account IDs, subscription IDs,
-  project IDs, and CIDRs still fail with the same message, now reported at the
-  module call. The network roots keep their cloud ID checks because only the
-  provider configuration reads that value. Stacks and core modules now accept a
+- Roots no longer repeat name and CIDR validations that `modules/context` or their
+  stack already applies. Invalid values still fail with the same message, now
+  reported at the module call. Roots keep validations for account, subscription,
+  and project IDs, because their provider configuration reads those values before
+  any module runs. Stacks and core modules now accept a
   provider range within the current major version, and each root's exact pin and
   lock file select the version. Dependabot now updates roots only. Plans and
   provider selections are unchanged.
