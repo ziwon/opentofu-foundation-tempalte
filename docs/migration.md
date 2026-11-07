@@ -158,6 +158,30 @@ requires these no-op moves with unchanged IDs and outputs. Run `tofu init` again
 before you plan, since the stack now calls a new module. After you apply, `tofu state
 list` shows the nested address.
 
+### Azure
+
+The Azure storage stacks call `modules/azure/storage-account` as `module "storage_account"`,
+and the network stack calls `modules/azure/network` as `module "network"`. Each stack
+keeps its resource group at `module.stack.azurerm_resource_group.this`, so the resource
+group does not move. The stacks' `migrations.tf` files move the other resources:
+
+| Stack | Address in the stack before | Address in the stack now |
+| --- | --- | --- |
+| `bootstrap/state`, `storage/bucket` | `azurerm_storage_account.this` | `module.storage_account.azurerm_storage_account.this` |
+| `bootstrap/state`, `storage/bucket` | `azurerm_storage_container.this` | `module.storage_account.azurerm_storage_container.this` |
+| `network/core` | `azurerm_virtual_network.this` | `module.network.azurerm_virtual_network.this` |
+| `network/core` | `azurerm_subnet.private` | `module.network.azurerm_subnet.private` |
+| `network/core` | `azurerm_network_security_group.this` | `module.network.azurerm_network_security_group.this` |
+| `network/core` | `azurerm_subnet_network_security_group_association.this` | `module.network.azurerm_subnet_network_security_group_association.this` |
+
+In a root, each address gains the `module.stack.` prefix. State at the shared-stack
+address, such as `azurerm_storage_account.this`, or at the native-root address, such as
+`module.stack.azurerm_storage_account.this`, plans a move to
+`module.stack.module.storage_account.azurerm_storage_account.this` with no resource
+changes. Storage account names, container names, and every other argument are
+unchanged. Run `tofu init` again before you plan, then confirm that the plan reports
+only these moves.
+
 ## Update scripts and policy
 
 Point local commands and automation at the live root. Remove old generated
