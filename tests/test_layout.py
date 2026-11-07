@@ -149,6 +149,32 @@ class LayoutTests(unittest.TestCase):
         result = check_layout(self.root)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_opentofu_decides_which_stack_a_root_calls(self):
+        wrong = self.shadow_stack()
+        main = self.live / "main.tf"
+        original = main.read_text()
+        fake = 'module "stack" {\n  source = "EXPECTED"\n}\n'.replace("EXPECTED", "../../../../../stacks/local/foundation/catalog")
+        cases = {
+            "tofu file shadows main.tf": {"main.tofu": 'module "stack" { source = "WRONG" }\n'},
+            "escaped backslash before a comment": {"main.tf": original.replace("../../../../../stacks/local/foundation/catalog", "WRONG")
+                + 'locals {\n  path = "C:\\\\" /*\n' + fake + '*/\n}\n'},
+            "heredoc after the real call": {"main.tf": original.replace("../../../../../stacks/local/foundation/catalog", "WRONG")
+                + 'locals {\n  doc = <<EOT\n' + fake + 'EOT\n}\n'},
+            "slash star inside a hash comment": {"main.tf": "# see /* below\n" + original.replace("../../../../../stacks/local/foundation/catalog", "WRONG")
+                + "# */\n" + 'locals {\n  doc = <<EOT\n' + fake + 'EOT\n}\n'},
+            "one-line call before a heredoc": {"main.tf": 'module "stack" { source = "WRONG" }\n'
+                + 'locals {\n  doc = <<EOT\n' + fake + 'EOT\n}\n'},
+        }
+        for case, files in cases.items():
+            with self.subTest(case):
+                for name, text in files.items():
+                    (self.live / name).write_text(text.replace("WRONG", wrong))
+                self.assertRejected("Root does not call its stack", "dev/local/foundation/catalog")
+                main.write_text(original)
+                for name in files:
+                    if name != "main.tf":
+                        (self.live / name).unlink()
+
     def test_stack_without_main_tf_is_discovered(self):
         orphan = self.root / "stacks/local/foundation/orphan"
         orphan.mkdir()
