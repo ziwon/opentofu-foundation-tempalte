@@ -1,0 +1,56 @@
+{
+  "aws/bootstrap/state": [
+    "aws_kms_key.state",
+    "aws_s3_bucket.this",
+    "aws_s3_bucket_ownership_controls.this",
+    "aws_s3_bucket_policy.tls",
+    "aws_s3_bucket_public_access_block.this",
+    "aws_s3_bucket_server_side_encryption_configuration.this",
+    "aws_s3_bucket_versioning.this"
+  ],
+  "aws/network/core": [
+    "aws_default_security_group.this",
+    "aws_subnet.private",
+    "aws_vpc.this"
+  ],
+  "aws/storage/bucket": [
+    "aws_kms_key.storage",
+    "aws_s3_bucket.this",
+    "aws_s3_bucket_ownership_controls.this",
+    "aws_s3_bucket_policy.tls",
+    "aws_s3_bucket_public_access_block.this",
+    "aws_s3_bucket_server_side_encryption_configuration.this",
+    "aws_s3_bucket_versioning.this"
+  ],
+  "azure/bootstrap/state": [
+    "azurerm_resource_group.this",
+    "azurerm_storage_account.this",
+    "azurerm_storage_container.this"
+  ],
+  "azure/network/core": [
+    "azurerm_network_security_group.this",
+    "azurerm_resource_group.this",
+    "azurerm_subnet.private",
+    "azurerm_subnet_network_security_group_association.this",
+    "azurerm_virtual_network.this"
+  ],
+  "azure/storage/bucket": [
+    "azurerm_resource_group.this",
+    "azurerm_storage_account.this",
+    "azurerm_storage_container.this"
+  ],
+  "gcp/bootstrap/state": [
+    "google_storage_bucket.this"
+  ],
+  "gcp/network/core": [
+    "google_compute_firewall.deny_ingress",
+    "google_compute_network.this",
+    "google_compute_subnetwork.private"
+  ],
+  "gcp/storage/bucket": [
+    "google_storage_bucket.this"
+  ],
+  "local/foundation/catalog": [
+    "terraform_data.catalog"
+  ]
+}

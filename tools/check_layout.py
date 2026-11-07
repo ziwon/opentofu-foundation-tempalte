@@ -7,14 +7,19 @@ import re
 import sys
 from urllib.parse import unquote, urlsplit
 
+from addresses import managed_addresses, verify_continuity
 from atlantis import EXAMPLE, ROOT, configuration, write_configuration
 
 
 def check(root: Path):
     write_configuration(configuration(root), root / EXAMPLE, check=True)
+    for directory in sorted((root / "live").glob("*/*/*/*")):
+        if directory.is_dir() and not (directory / "terraform.tfvars.json").is_file():
+            raise ValueError(f"Missing terraform.tfvars.json: {directory.relative_to(root / 'live')}")
     roots = sorted((root / "live").glob("*/*/*/*/terraform.tfvars.json"))
     if not roots or (root / "stacks").exists():
         raise ValueError("Use native live roots and reusable modules; no stacks runtime layer")
+    legacy = json.loads((root / "tools/legacy-addresses.json").read_text())
     states = set()
     compositions = set()
     for variables in roots:
@@ -55,6 +60,14 @@ def check(root: Path):
         states.add(state)
         if cloud != "local" and not (directory / ".terraform.lock.hcl").is_file():
             raise ValueError(f"Missing provider lock: {deployment}")
+        try:
+            verify_continuity(legacy.get(f"{cloud}/{group}/{stack}", []), *managed_addresses(directory))
+        except ValueError as error:
+            raise ValueError(f"{error}: {deployment}") from None
+    unmatched = set(legacy) - {"/".join(module.relative_to(root / "modules").parts) for module in compositions}
+    if unmatched:
+        raise ValueError(f"Legacy address inventory has no root for {', '.join(sorted(unmatched))}; "
+                         "keep the root or remove the entry after its state is retired")
     discovered = {path.parent for path in (root / "modules").glob("*/*/*/main.tf")}
     if compositions != discovered:
         raise ValueError(f"Composition modules and live roots differ: {compositions ^ discovered}")

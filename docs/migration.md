@@ -33,6 +33,29 @@ These blocks tell OpenTofu that the resource at the old address is the same
 resource at the new address. Keep them committed so roots with older state can
 still upgrade. Do not remove and reimport resources merely because the code moved.
 
+`python3 tools/check_layout.py` enforces this without state or cloud access.
+`tools/legacy-addresses.json` lists the addresses each shared stack declared.
+For every live root, the check follows each listed address through the `moved`
+blocks in the root and in every local module it calls. Each address must end at
+a distinct managed resource that the code still declares. A `moved` block must
+point at a declared resource or at the `from` of another move. Every inventory
+entry must match a root, so renaming a stack fails until you add moves or retire
+the entry with its state.
+
+The check reads a small HCL subset and rejects everything outside it. It rejects
+`count`, `for_each`, `lifecycle { enabled }`, module sources other than `./name/...`
+or leading `../` segments followed by plain names, symlinked module directories,
+block labels that are not identifiers, heredocs, template directives, escaped interpolations, whitespace other than
+spaces, tabs, and line feeds, override files, and `.tofu` or `.tf.json` files. It
+ignores comments and hidden files, as OpenTofu does, and climbs parent segments
+from the physical root directory. The check catches missing or wrong moves in
+ordinary configuration. It checks addresses only, so it cannot see an attribute
+change that forces a replacement. It is not proof against configuration written
+to mislead it. Before applying a migrated root, confirm that its saved plan has no
+destroy or replace actions.
+It does not know about resources you added to your own copy of the old layout.
+Add those addresses to the inventory before you rely on the check.
+
 ## Prepare the existing state
 
 1. Stop concurrent operations on the deployment. Record the current source revision,
