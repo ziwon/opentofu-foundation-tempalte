@@ -57,7 +57,8 @@ class AtlantisProjectsTests(unittest.TestCase):
             project, = atlantis.configuration(root, ["dev/local/foundation/catalog"])["projects"]
             watched = {pattern for pattern in project["autoplan"]["when_modified"] if pattern.endswith("/**/*.tf")}
             self.assertEqual(watched, {f"{REPOSITORY}/{module}/**/*.tf" for module in (
-                "modules/context", "modules/local/label", "modules/local/part", "stacks/local/foundation/catalog")})
+                "modules/context", "modules/local/catalog", "modules/local/label", "modules/local/part",
+                "stacks/local/foundation/catalog")})
 
     def test_checked_in_projects_are_current_and_check_does_not_overwrite(self):
         document = atlantis.configuration(atlantis.ROOT)

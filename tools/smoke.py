@@ -9,12 +9,14 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+CATALOG = "module.stack.module.catalog.terraform_data.catalog"
 
 
 def smoke():
     with tempfile.TemporaryDirectory(prefix="native local smoke ") as temporary:
         root = Path(temporary)
-        for name in ("modules/context", "stacks/local", "live/dev/local", "live/stage/local", "live/prod/local"):
+        for name in ("modules/context", "modules/local", "stacks/local",
+                     "live/dev/local", "live/stage/local", "live/prod/local"):
             shutil.copytree(ROOT / name, root / name, ignore=shutil.ignore_patterns(".terraform", "*.tfplan"))
         env = {key: value for key, value in os.environ.items()
                if not key.startswith(("TF_VAR_", "TF_CLI_ARGS", "TF_DATA_DIR", "TF_WORKSPACE"))}
@@ -47,9 +49,9 @@ def smoke():
             identifier = resources[0]["instances"][0]["attributes"]["id"]
             assert identifier not in ids
             ids.add(identifier)
-            assert native(directory, "state", "list").strip() == "module.stack.terraform_data.catalog"
-            assert environment in native(directory, "state", "show", "module.stack.terraform_data.catalog")
-            native(directory, "state", "show", "module.stack.terraform_data.missing", succeeds=False)
+            assert native(directory, "state", "list").strip() == CATALOG
+            assert environment in native(directory, "state", "show", CATALOG)
+            native(directory, "state", "show", "module.stack.module.catalog.terraform_data.missing", succeeds=False)
             extra_tags = {**inputs.get("tags", {}), "owner": "platform", "cost_center": "research"}
             variables.write_text(json.dumps({**inputs, "tags": extra_tags}))
             native(directory, "plan", "-input=false", "-out=plan.tfplan")

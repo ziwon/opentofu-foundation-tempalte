@@ -130,6 +130,34 @@ OpenTofu records module sources in each root's `.terraform/` directory. Run
 `tofu init` again in every root before you plan. Until you do, `tofu plan` fails with
 `Module not installed`. After `tofu init`, expect a plan with no changes.
 
+## Move resources from stacks into core modules
+
+Stacks now call core modules under `modules/`, which changes the addresses of the
+resources those modules own. The local catalog is the first. Its resource moved from
+`module.stack.terraform_data.catalog` to
+`module.stack.module.catalog.terraform_data.catalog`. The stack declares the move:
+
+```hcl
+moved {
+  from = terraform_data.catalog
+  to   = module.catalog.terraform_data.catalog
+}
+```
+
+The root's `migrations.tf` is unchanged, so the moves form a chain. Each starting
+state plans one move with no resource changes:
+
+| State recorded at | Plan reports |
+| --- | --- |
+| `terraform_data.catalog` (shared stack) | `terraform_data.catalog` has moved to `module.stack.module.catalog.terraform_data.catalog` |
+| `module.stack.terraform_data.catalog` (native root) | `module.stack.terraform_data.catalog` has moved to `module.stack.module.catalog.terraform_data.catalog` |
+
+`python3 tools/migration_smoke.py` applies the frozen shared-stack fixture for dev
+and prod, moves prod to the native-root address with `tofu state mv`, and then
+requires these no-op moves with unchanged IDs and outputs. Run `tofu init` again
+before you plan, since the stack now calls a new module. After you apply, `tofu state
+list` shows the nested address.
+
 ## Update scripts and policy
 
 Point local commands and automation at the live root. Remove old generated

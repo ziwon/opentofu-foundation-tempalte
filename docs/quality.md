@@ -72,7 +72,9 @@ fixed, that corrupt plans fail, and that invalid lint input fails.
 The local lifecycle fixture applies and destroys only disposable `terraform_data`
 resources. The migration fixture starts from the [frozen legacy catalog](../tests/fixtures/legacy-local/README.md)
 and supplies the same frozen inputs to the old and current HCL. It checks that
-dev and prod keep their resource IDs, typed outputs, and state paths while recording address moves with no resource changes. It works in a new
+dev and prod keep their resource IDs, typed outputs, and state paths while recording address moves with no resource changes. Dev moves from the
+shared-stack address. Prod first moves to the native-root address `module.stack.terraform_data.catalog`,
+so the check also covers the stack's move into its core module. It works in a new
 repository created from this template without the original Git history.
 
 Gitleaks remains a separate secret scan:
