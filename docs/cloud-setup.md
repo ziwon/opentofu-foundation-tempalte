@@ -89,6 +89,11 @@ jobs:
       - run: aws sts get-caller-identity
 ```
 
+A prefix in `subject_patterns` matches every value that starts with it, so
+`ref:refs/heads/main*` also matches a branch named `main-test`. End branch prefixes
+with `/`, such as `ref:refs/heads/release/*`. A `pull_request_target` job presents the
+base branch's subject, so a role trusting `ref:refs/heads/main` also trusts those jobs.
+
 A job that sets `environment: dev` presents the subject
 `repo:<owner>/<repo>:environment:dev`. A job without an environment that runs
 for a branch push presents `repo:<owner>/<repo>:ref:refs/heads/<branch>`. The role trusts only the subjects
