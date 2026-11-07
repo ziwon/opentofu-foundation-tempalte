@@ -4,7 +4,9 @@ from pathlib import Path
 import re
 
 UNREAD = ("*.tofu", "*.tf.json", "*.tofu.json", "override.tf", "*_override.tf")
-INTERPOLATION = "\0"
+INTERPOLATION, ESCAPE = "\0", "\1"
+LABEL = re.compile(r"[A-Za-z_][A-Za-z0-9_-]*")
+SOURCE = re.compile(r"\.{1,2}/[A-Za-z0-9._/-]*")
 BLOCK = re.compile(r'^(resource|module|moved)((?:[ \t]+"[^"]*")*)[ \t]*\{', re.M)
 
 
@@ -22,6 +24,8 @@ def strip(text: str) -> str:
                 stack.append("code")
                 i += 1
             elif char == "\\":
+                if "code" not in stack:
+                    out.append(ESCAPE)
                 i += 1
             else:
                 if char == '"':
@@ -75,9 +79,14 @@ def parse_module(text: str) -> tuple[set[str], dict[str, str], list[tuple[str, s
     text = strip(text)
     for match in BLOCK.finditer(text):
         kind, labels = match.group(1), re.findall(r'"([^"]*)"', match.group(2))
+        if not all(LABEL.fullmatch(label) for label in labels):
+            raise ValueError(f"Cannot trace {kind} labels {labels!r}")
         body = block_body(text, match.end())
         if kind == "moved":
-            moves.append((attribute(body, "from"), attribute(body, "to")))
+            move = attribute(body, "from"), attribute(body, "to")
+            if not all(move):
+                raise ValueError("Cannot trace a moved block without from and to")
+            moves.append(move)
             continue
         address = ".".join(labels) if kind == "resource" else f"module.{labels[0]}"
         for meta in ("count", "for_each"):
@@ -90,7 +99,7 @@ def parse_module(text: str) -> tuple[set[str], dict[str, str], list[tuple[str, s
             resources.add(address)
             continue
         source = (attribute(body, "source") or "").strip('"')
-        if not source.startswith(("./", "../")) or INTERPOLATION in source:
+        if not SOURCE.fullmatch(source):
             raise ValueError(f"Cannot trace {address} with source {source.replace(INTERPOLATION, '${...}')!r}")
         calls[labels[0]] = source
     return resources, calls, moves
@@ -101,7 +110,7 @@ def managed_addresses(directory: Path, prefix: str = "") -> tuple[set[str], list
     unread = sorted(path.name for pattern in UNREAD for path in directory.glob(pattern))
     if unread:
         raise ValueError(f"Cannot trace {directory.name} with {', '.join(unread)}")
-    names = sorted(path for path in directory.glob("*.tf") if not path.name.startswith("."))
+    names = sorted(path for path in directory.glob("*.tf") if path.is_file() and not path.name.startswith("."))
     text = "\n".join(path.read_bytes().decode() for path in names)
     local_resources, calls, local_moves = parse_module(text)
     resources = {prefix + address for address in local_resources}
