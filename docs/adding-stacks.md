@@ -38,8 +38,14 @@ variable "context" {
 ```
 
 Stacks declare provider requirements but do not configure providers, choose cloud
-identities, or declare backends. Put cloud-specific naming and resource relationships
-in the stack. Return outputs that callers need.
+identities, or declare backends. Declare each provider as a range within its current
+major version, such as `>= 6.71.0, < 7.0.0`. Roots pin the exact version. Put
+cloud-specific naming and resource relationships in the stack. Return outputs that
+callers need.
+
+Validate an input in the module that consumes it. A root validates only a value
+that no module it calls validates, such as an account ID that only its provider
+configuration reads.
 
 Create a live root that calls `modules/context` in `context.tf` and the stack
 as `module "stack"` in `main.tf` with
