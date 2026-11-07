@@ -158,6 +158,51 @@ requires these no-op moves with unchanged IDs and outputs. Run `tofu init` again
 before you plan, since the stack now calls a new module. After you apply, `tofu state
 list` shows the nested address.
 
+### AWS
+
+The AWS stacks call `modules/aws/kms-key` as `module "key"`, `modules/aws/s3-bucket`
+as `module "bucket"`, and `modules/aws/vpc` as `module "vpc"`. Each stack's
+`migrations.tf` moves every resource it held:
+
+| Stack | Native-root address | Current address |
+| --- | --- | --- |
+| `aws/bootstrap/state` | `module.stack.aws_kms_key.state` | `module.stack.module.key.aws_kms_key.this` |
+| `aws/storage/bucket` | `module.stack.aws_kms_key.storage` | `module.stack.module.key.aws_kms_key.this` |
+| `aws/bootstrap/state`, `aws/storage/bucket` | `module.stack.aws_s3_bucket.this` | `module.stack.module.bucket.aws_s3_bucket.this` |
+| `aws/bootstrap/state`, `aws/storage/bucket` | `module.stack.aws_s3_bucket_<setting>.this` for `public_access_block`, `ownership_controls`, `versioning`, and `server_side_encryption_configuration` | `module.stack.module.bucket.aws_s3_bucket_<setting>.this` |
+| `aws/bootstrap/state`, `aws/storage/bucket` | `module.stack.aws_s3_bucket_policy.tls` | `module.stack.module.bucket.aws_s3_bucket_policy.tls` |
+| `aws/network/core` | `module.stack.aws_vpc.this`, `module.stack.aws_subnet.private`, `module.stack.aws_default_security_group.this` | The same resource under `module.stack.module.vpc.` |
+
+State at the shared-stack address, such as `aws_kms_key.state`, follows the root's
+move and then the stack's move. Every resource argument is unchanged, so after
+`tofu init` the plan reports only moves, with no add, change, or destroy. Stop if it
+shows any other action. Without cloud access, `python3 tools/check_layout.py` proves
+that every shared-stack address reaches its resource. The workload storage bucket
+now has `prevent_destroy`, as the bootstrap bucket already did, so a plan that
+destroys either bucket or key fails.
+### Azure
+
+The Azure storage stacks call `modules/azure/storage-account` as `module "storage_account"`,
+and the network stack calls `modules/azure/network` as `module "network"`. Each stack
+keeps its resource group at `module.stack.azurerm_resource_group.this`, so the resource
+group does not move. The stacks' `migrations.tf` files move the other resources:
+
+| Stack | Address in the stack before | Address in the stack now |
+| --- | --- | --- |
+| `bootstrap/state`, `storage/bucket` | `azurerm_storage_account.this` | `module.storage_account.azurerm_storage_account.this` |
+| `bootstrap/state`, `storage/bucket` | `azurerm_storage_container.this` | `module.storage_account.azurerm_storage_container.this` |
+| `network/core` | `azurerm_virtual_network.this` | `module.network.azurerm_virtual_network.this` |
+| `network/core` | `azurerm_subnet.private` | `module.network.azurerm_subnet.private` |
+| `network/core` | `azurerm_network_security_group.this` | `module.network.azurerm_network_security_group.this` |
+| `network/core` | `azurerm_subnet_network_security_group_association.this` | `module.network.azurerm_subnet_network_security_group_association.this` |
+
+In a root, each address gains the `module.stack.` prefix. State at the shared-stack
+address, such as `azurerm_storage_account.this`, or at the native-root address, such as
+`module.stack.azurerm_storage_account.this`, plans a move to
+`module.stack.module.storage_account.azurerm_storage_account.this` with no resource
+changes. Storage account names, container names, and every other argument are
+unchanged. Run `tofu init` again before you plan, then confirm that the plan reports
+only these moves.
 ### GCP
 
 The GCP stacks call `modules/gcp/storage-bucket` as `module "bucket"` and

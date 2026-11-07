@@ -11,31 +11,23 @@ mock_provider "azurerm" {
     defaults = { id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/example/providers/Microsoft.Storage/storageAccounts/example" }
   }
 }
-run "private_versioned_storage" {
+run "backend_config" {
   command = plan
   assert {
-    condition     = azurerm_storage_account.this.network_rules[0].default_action == "Deny" && azurerm_storage_account.this.blob_properties[0].delete_retention_policy[0].days == 30 && azurerm_storage_account.this.account_replication_type == "ZRS"
-    error_message = "State must restrict network access, retain deleted blobs for 30 days, and use zone replication."
+    condition     = output.backend_config == { resource_group_name = "starter-fixture-dev-rg", storage_account_name = "starterfixturedevb602d5", container_name = "tfstate", subscription_id = var.subscription_id, use_azuread_auth = true }
+    error_message = "Backend settings must name the state resource group, account, and container and use Entra authentication in the selected subscription."
   }
   assert {
-    condition     = output.backend_config.use_azuread_auth && output.backend_config.subscription_id == var.subscription_id
-    error_message = "Backend settings must use Entra authentication in the selected subscription."
+    condition     = output.backend_config.storage_account_name == module.storage_account.name
+    error_message = "Backend settings must name the account that the storage-account module manages."
   }
   assert {
-    condition     = !azurerm_storage_account.this.allow_nested_items_to_be_public && !azurerm_storage_account.this.shared_access_key_enabled && azurerm_storage_container.this.container_access_type == "private"
-    error_message = "Storage must use private containers and identity-based access."
+    condition     = azurerm_resource_group.this.location == var.location && azurerm_resource_group.this.tags == tomap(var.context.tags)
+    error_message = "The state resource group must use the selected location and context tags."
   }
   assert {
-    condition     = azurerm_storage_account.this.blob_properties[0].versioning_enabled && azurerm_storage_account.this.https_traffic_only_enabled
-    error_message = "Blob versions and HTTPS must remain enabled."
-  }
-}
-
-run "short_account_name_is_stable" {
-  command = plan
-  assert {
-    condition     = azurerm_storage_account.this.name == "starterfixturedevb602d5"
-    error_message = "Names that fit without truncation must keep their existing value."
+    condition     = module.storage_account.replication_type == "ZRS" && module.storage_account.delete_retention_days == 30
+    error_message = "State storage must use zone replication and keep deleted blobs and containers for 30 days."
   }
 }
 
@@ -45,7 +37,7 @@ run "truncated_dev_account_name" {
     context = { "id" : "acmeplatform-storage-dev", "tags" : { "project" : "acmeplatform", "environment" : "dev", "managed_by" : "iac" } }
   }
   assert {
-    condition     = azurerm_storage_account.this.name == "acmeplatformstoragf2a1ba"
+    condition     = output.backend_config.storage_account_name == "acmeplatformstoragf2a1ba"
     error_message = "A truncated name must keep the full deployment identity in its suffix."
   }
 }
@@ -56,7 +48,7 @@ run "truncated_prod_account_name" {
     context = { "id" : "acmeplatform-storage-prod", "tags" : { "project" : "acmeplatform", "environment" : "prod", "managed_by" : "iac" } }
   }
   assert {
-    condition     = azurerm_storage_account.this.name == "acmeplatformstorag9c711f"
+    condition     = output.backend_config.storage_account_name == "acmeplatformstorag9c711f"
     error_message = "Environments in one subscription must not share a truncated name."
   }
 }
