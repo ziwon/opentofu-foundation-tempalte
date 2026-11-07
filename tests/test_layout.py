@@ -10,14 +10,14 @@ import unittest
 from tools import atlantis
 
 ROOT = Path(__file__).resolve().parents[1]
-REGISTRY_STACK = '''module "buckets" {
-  source   = "terraform-aws-modules/s3-bucket/aws"
-  version  = "~> 4.0"
+REAL_WORLD_STACK = '''module "buckets" {
+  source   = "../../../../modules/local/label"
   for_each = toset(["logs", "assets"])
+}
 
-  bucket = each.key
+locals {
   policy = <<-EOT
-    {"Statement": []}
+    {"Statement": [{"Resource": "arn:aws:s3:::example-logs/*"}]}
   EOT
 }
 
@@ -40,11 +40,12 @@ def copy_local_template(root):
 
 def add_real_world_stack(root):
     stack = root / "stacks/local/foundation/catalog"
-    (stack / "registry.tf").write_text(REGISTRY_STACK)
+    (stack / "real_world.tf").write_text(REAL_WORLD_STACK)
     (stack / "label.tofu").write_text('module "label" {\n  source = "../../../../modules/local/label"\n}\n')
-    for name, source in {"label": "../part", "part": "../label"}.items():
-        (root / "modules/local" / name).mkdir(parents=True)
-        (root / "modules/local" / name / "main.tf").write_text(f'module "next" {{\n  source = "{source}"\n}}\n')
+    (root / "modules/local/label").mkdir(parents=True)
+    (root / "modules/local/label/main.tf").write_text('module "part" {\n  source = "../part"\n}\n')
+    (root / "modules/local/part").mkdir(parents=True)
+    (root / "modules/local/part/main.tf").write_text('resource "terraform_data" "part" {}\n')
 
 
 def check_layout(root):
@@ -115,15 +116,15 @@ class LayoutTests(unittest.TestCase):
         shutil.copytree(self.stack, shadow)
         return "../../../../../vendor/local/foundation/shadow"
 
-    def test_override_and_json_files_cannot_redirect_the_stack(self):
+    def test_override_files_cannot_redirect_the_stack(self):
         wrong = self.shadow_stack()
-        for name in ("override.tf", "a_override.tf", "main_override.tofu"):
+        for name, text in (("override.tf", f'module "stack" {{\n  source = "{wrong}"\n}}\n'),
+                           ("main_override.tofu", f'module "stack" {{\n  source = "{wrong}"\n}}\n'),
+                           ("override.tf.json", '{"module": {"stack": {"source": "' + wrong + '"}}}\n')):
             with self.subTest(name):
-                (self.live / name).write_text(f'module "stack" {{\n  source = "{wrong}"\n}}\n')
-                self.assertRejected(name, "dev/local/foundation/catalog")
+                (self.live / name).write_text(text)
+                self.assertRejected("Root does not call its stack", "dev/local/foundation/catalog")
                 (self.live / name).unlink()
-        (self.live / "extra.tf.json").write_text("{}\n")
-        self.assertRejected("extra.tf.json", "dev/local/foundation/catalog")
 
     def test_block_comments_and_nested_keys_cannot_name_the_stack(self):
         wrong = self.shadow_stack()
@@ -132,7 +133,7 @@ class LayoutTests(unittest.TestCase):
         expected = "../../../../../stacks/local/foundation/catalog"
         cases = {
             "block comment": original.replace(f'  source      = "{expected}"', f'  /* source = "{expected}" */\n  source      = "{wrong}"'),
-            "comment after code": original.replace(f'  source      = "{expected}"', f'  description = var.description /*\n  source = "{expected}"\n  */\n  source      = "{wrong}"'),
+            "comment after code": 'locals {\n  note = "x" /*\n  source = "' + expected + '"\n  */\n}\n' + original.replace(f'  source      = "{expected}"', f'  source      = "{wrong}"'),
             "nested map key": original.replace(f'  source      = "{expected}"', f'  labels = {{\n    source = "{expected}"\n  }}\n  source      = "{wrong}"'),
         }
         for case, text in cases.items():

@@ -6,53 +6,23 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = Path("integrations/atlantis/atlantis.yaml.example")
-MODULE = re.compile(r'^module\s+"([^"]+)"\s*\{(.*?)^\}', re.MULTILINE | re.DOTALL)
-ONE_LINE = re.compile(r'^module\s+"([^"]+)"\s*\{([^\n]*)\}\s*$', re.MULTILINE)
-SOURCE = re.compile(r'^  source\s*=\s*"([^"]*)"', re.MULTILINE)
-INLINE_SOURCE = re.compile(r'\bsource\s*=\s*"([^"]*)"')
-
-
-def strip_block_comments(text: str) -> str:
-    """Drop /* */ comments that start outside a string, such as an S3 ARN ending in /*."""
-    out, position = [], 0
-    while (start := text.find("/*", position)) >= 0:
-        line = text[text.rfind("\n", 0, start) + 1:start]
-        if line.replace('\\"', "").count('"') % 2:
-            out.append(text[position:start + 2])
-            position = start + 2
-            continue
-        end = text.find("*/", start + 2)
-        out.append(text[position:start])
-        position = len(text) if end < 0 else end + 2
-    return "".join(out) + text[position:]
-
-
-def module_sources(directory: Path) -> dict[str, str]:
-    """Return each module call's top-level source, as `tofu fmt` lays it out."""
-    files = sorted(path for pattern in ("*.tf", "*.tofu") for path in directory.glob(pattern) if path.is_file())
-    text = strip_block_comments("\n".join(path.read_text() for path in files))
-    sources = {name: source.group(1) for name, body in ONE_LINE.findall(text)
-               if (source := INLINE_SOURCE.search(body))}
-    text = ONE_LINE.sub("", text)
-    sources.update({name: source.group(1) for name, body in MODULE.findall(text) if (source := SOURCE.search(body))})
-    return sources
-
-
-def module_directories(directory: Path) -> set[Path]:
-    """Return every local module directory a root reaches, directly or through other modules."""
-    reached, pending = set(), [directory]
-    while pending:
-        current = pending.pop()
-        for source in module_sources(current).values():
-            child = Path(os.path.normpath(current / source))
-            if source.startswith(("./", "../")) and child not in reached:
-                reached.add(child)
-                pending.append(child)
-    return reached
+def module_directories(directory: Path) -> dict[str, Path]:
+    """Ask OpenTofu which module directory each module call in a root loads."""
+    with tempfile.TemporaryDirectory(prefix="modules-") as data:
+        result = subprocess.run(["tofu", f"-chdir={directory}", "get", "-no-color"],
+                                env={**os.environ, "TF_DATA_DIR": data}, capture_output=True, text=True)
+        if result.returncode:
+            lines = [line for line in result.stderr.splitlines() if line.strip()]
+            raise ValueError(f"tofu get failed: {lines[0] if lines else result.returncode}")
+        manifest = json.loads((Path(data) / "modules/modules.json").read_text())
+    base = Path(os.path.realpath(directory))
+    return {module["Key"]: Path(os.path.normpath(base / module["Dir"])) for module in manifest["Modules"] if module["Key"]}
 
 
 def configuration(root: Path, names=(), autoplan=False) -> dict:
@@ -74,7 +44,9 @@ def configuration(root: Path, names=(), autoplan=False) -> dict:
         if not names and re.search(r'backend\s+"local"', (directory / "backend.tf").read_text()):
             continue
         repository = os.path.relpath(root, directory)
-        modules = sorted(Path(os.path.relpath(module, root)).as_posix() for module in module_directories(directory))
+        repository_root = Path(os.path.realpath(root))
+        modules = sorted({module.relative_to(repository_root).as_posix() for module in module_directories(directory).values()
+                          if module.is_relative_to(repository_root)})
         projects.append({
             "name": name,
             "dir": directory.relative_to(root).as_posix(),

@@ -2,22 +2,13 @@
 """Check native root structure, state identity, and documentation links."""
 
 import json
+import os
 from pathlib import Path
 import re
 import sys
 from urllib.parse import unquote, urlsplit
 
-from atlantis import EXAMPLE, ROOT, configuration, module_sources, write_configuration
-
-
-# Override and JSON files can replace a module call without changing the files this check reads.
-UNREAD = ("override.tf", "*_override.tf", "override.tofu", "*_override.tofu", "*.tf.json", "*.tofu.json")
-
-
-def reject_unread_files(directory: Path, label: str):
-    unread = sorted(path.name for pattern in UNREAD for path in directory.glob(pattern))
-    if unread:
-        raise ValueError(f"Use plain .tf or .tofu files, not {', '.join(unread)}: {label}")
+from atlantis import EXAMPLE, ROOT, configuration, module_directories, write_configuration
 
 
 def stack_directories(root: Path) -> set[Path]:
@@ -68,13 +59,10 @@ def check(root: Path):
         states.add(state)
         if cloud != "local" and not (directory / ".terraform.lock.hcl").is_file():
             raise ValueError(f"Missing provider lock: {deployment}")
-        reject_unread_files(directory, deployment.as_posix())
         source = f"../../../../../stacks/{cloud}/{group}/{stack}"
-        if module_sources(directory).get("stack") != source:
+        if module_directories(directory).get("stack") != Path(os.path.realpath(root / "stacks" / cloud / group / stack)):
             raise ValueError(f"Root does not call its stack {source}: {deployment}")
     discovered = stack_directories(root)
-    for directory in sorted(discovered):
-        reject_unread_files(directory, directory.relative_to(root).as_posix())
     if stacks != discovered:
         raise ValueError(f"Stacks and the stacks live roots call differ: {sorted(path.relative_to(root).as_posix() for path in stacks ^ discovered)}")
     for path in [path for base in ("modules", "stacks") for pattern in ("*.tf", "*.tofu") for path in (root / base).rglob(pattern)]:
