@@ -4,9 +4,10 @@
 
 First release of the template.
 
-- 30 native OpenTofu roots under `live/<environment>/<cloud>/<group>/<stack>` for
+- 33 native OpenTofu roots under `live/<environment>/<cloud>/<group>/<stack>` for
   dev, stage, and prod. They cover AWS, Azure, and GCP network, storage, and
-  state-bootstrap examples, plus a cloud-free local catalog. Each root owns its
+  state-bootstrap examples, AWS GitHub Actions OIDC roles, and a cloud-free local
+  catalog. Each root owns its
   backend, provider configuration, inputs, outputs, and lock file, and runs with
   plain `tofu` commands.
 - Each root calls one purpose-specific stack in `stacks/<cloud>/<group>/<stack>` as
@@ -35,3 +36,10 @@ First release of the template.
   so provider and plugin caches can live outside the checkout.
 - English and Korean getting-started guides, plus architecture, cloud setup,
   bootstrap, operations, quality, Atlantis, security, and contribution guides.
+- `modules/aws/github-actions-oidc` creates or looks up the account's GitHub Actions
+  OIDC provider and IAM roles that trust exact `sub` claims and the
+  `sts.amazonaws.com` audience with `StringEquals`. Prefix patterns are an explicit
+  per-role opt-in. Validation rejects wildcard, malformed, and `pull_request`
+  subjects and session limits outside 1 to 12 hours. The
+  `live/<environment>/aws/identity/github-actions-oidc` roots name each role
+  `<deployment name>-<key>`.

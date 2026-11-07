@@ -28,9 +28,9 @@ modules/context/                name and tag convention
 modules/<cloud>/<module>/       reusable core building blocks
 ```
 
-A deployment is `environment/cloud/group/stack`. The 30 supplied roots cover AWS,
-Azure, and GCP network, storage, and state bootstrap examples, plus a local catalog,
-in dev, stage, and prod. Each leaf runs independently and uses the default workspace.
+A deployment is `environment/cloud/group/stack`. The 33 supplied roots cover AWS,
+Azure, and GCP network, storage, and state bootstrap examples, AWS GitHub Actions
+OIDC roles, and a local catalog, in dev, stage, and prod. Each leaf runs independently and uses the default workspace.
 
 The repository has three layers. A `live/` root owns state, providers, and inputs,
 and calls exactly one stack as `module "stack"`. A stack under
@@ -90,6 +90,10 @@ tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 | Azure | VNet, subnet, network security group | Private containers, versioning, identity-based access | Azure Blob with leases |
 | GCP | Custom VPC, subnet, ingress firewall | Private, versioned bucket with uniform access | GCS with locking |
 | Local | Built-in catalog | Local state only | Local file |
+
+The AWS `identity/github-actions-oidc` roots create IAM roles that GitHub Actions
+jobs assume through OIDC instead of stored access keys. See
+[cloud setup](docs/cloud-setup.md#let-github-actions-assume-an-aws-role).
 
 The examples create no compute workloads, NAT gateways, or public IPs. Storage,
 requests, keys, versions, and network logging can incur charges. Review identity,

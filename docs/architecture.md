@@ -30,7 +30,7 @@ The repository has three layers.
   through `module "stack"`.
 - `stacks/<cloud>/<group>/<stack>` holds purpose-specific compositions. A stack
   declares the resources for one kind of deployment and may call core modules as
-  nested modules. The 30 roots call ten stacks.
+  nested modules. The 33 roots call 11 stacks.
 - `modules/` holds reusable core building blocks and the shared `modules/context`
   naming convention.
 

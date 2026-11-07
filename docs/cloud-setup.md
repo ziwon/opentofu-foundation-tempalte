@@ -25,8 +25,8 @@ to that backend through its normal authentication mechanism.
 2. Grant the operator access to that bucket and deployment prefix. S3 locking
    additionally needs `GetObject`, `PutObject`, and `DeleteObject` on `.tflock`
    objects. Consult the [backend permission examples](https://opentofu.org/docs/language/settings/backends/s3/).
-3. Configure AWS CLI SSO or a role-based credential chain. For CI, prefer OIDC
-   with a repository/environment-scoped trust policy.
+3. Configure AWS CLI SSO or a role-based credential chain. For GitHub Actions,
+   [assume a role through OIDC](#let-github-actions-assume-an-aws-role).
 4. Set `aws_account_id` and `region` in the deployment's `terraform.tfvars.json`.
    Set the backend bucket, region, and `allowed_account_ids` in `backend.tf`.
 
@@ -48,6 +48,49 @@ Add access logging, retention/lifecycle rules, and
 replication where your requirements call for them. Nonempty buckets resist
 deletion, and `prevent_destroy` in `modules/aws/s3-bucket` and `modules/aws/kms-key`
 makes any plan that destroys the bucket or key fail. That is not a backup or retention policy.
+
+### Let GitHub Actions assume an AWS role
+
+The `live/<environment>/aws/identity/github-actions-oidc` roots create IAM roles
+that GitHub Actions jobs assume with short-lived OIDC tokens instead of stored keys.
+See [`modules/aws/github-actions-oidc`](../modules/aws/github-actions-oidc/README.md)
+for the trust policy and the subject forms it accepts.
+
+1. In the root's `terraform.tfvars.json`, replace `REPLACE_ME_GITHUB_OWNER` and
+   `REPLACE_ME_GITHUB_REPOSITORY` in each role's `subjects`, and set `aws_account_id`.
+2. Give each role only the permissions its jobs need, through `managed_policy_arns`,
+   `inline_policy_json`, or both. The example `deploy` role has no permissions.
+3. Set `create_oidc_provider` to `true` in exactly one root per AWS account. An
+   account holds one provider for `token.actions.githubusercontent.com`, so set
+   `false` in every other root that targets the same account, and apply the root
+   that creates the provider first. Destroying that root removes the provider
+   that the other roots' roles trust.
+4. Review and apply the root's plan, then read the role ARN with
+   `tofu -chdir=live/dev/aws/identity/github-actions-oidc output roles`.
+5. In the workflow, grant `id-token: write` and pass the ARN as `role-to-assume`:
+
+```yaml
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::000000000000:role/starter-github-dev-deploy
+          aws-region: us-east-1
+      - run: aws sts get-caller-identity
+```
+
+A job that sets `environment: dev` presents the subject
+`repo:<owner>/<repo>:environment:dev`. A job without an environment that runs
+for a branch push presents `repo:<owner>/<repo>:ref:refs/heads/<branch>`. The role trusts only the subjects
+listed in its `subjects` and `subject_patterns`. Restrict which branches can deploy
+to a GitHub environment with its deployment branch rules.
 
 ## Azure
 
