@@ -55,3 +55,10 @@
   for dev, stage, and prod, plus a cloud-free local catalog.
 - Native-root migration, operating, security, and contribution guides in addition
   to English and Korean getting-started documentation.
+- The GCP stacks call the core modules `modules/gcp/storage-bucket` as
+  `module "bucket"` and `modules/gcp/network` as `module "network"`. Their resources
+  moved from `module.stack.<resource>` to `module.stack.module.bucket.<resource>` and
+  `module.stack.module.network.<resource>`. `moved` blocks in each stack continue the
+  roots' moves, and planned attributes do not change. The bucket name-length tests
+  now run in the core module. The workload bucket in `gcp/storage/bucket` now uses
+  `prevent_destroy`. Run `tofu init` again in existing GCP working directories.

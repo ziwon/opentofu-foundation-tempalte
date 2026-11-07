@@ -34,6 +34,7 @@ suffix is 6 characters of the subscription ID hash. If it is truncated, the suff
 hashes the subscription and the full ID, so environments in one subscription stay distinct.
 
 GCS bucket names are the ID plus the project ID, and a plan fails if the total exceeds 63 characters.
+`modules/gcp/storage-bucket` owns this rule for both GCP buckets.
 
 ## Provider and resource tags
 
