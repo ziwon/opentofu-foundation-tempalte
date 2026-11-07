@@ -45,6 +45,9 @@ approval checks or automatic security scans. Use [trusted automation](atlantis.m
 must be enforced. The [quality helper](quality.md) can also scan a local source tree
 and saved plan explicitly.
 
+To estimate the cost of a saved plan, see the optional
+[Infracost integration](../integrations/infracost/README.md). Its estimates are advisory.
+
 Use the default workspace. Keep credentials in native cloud authentication, and
 avoid hidden variable or CLI overrides when working from reviewed inputs.
 Initialization with `-lockfile=readonly` preserves committed provider selections.
