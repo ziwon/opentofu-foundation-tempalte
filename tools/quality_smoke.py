@@ -85,9 +85,10 @@ def smoke(workflow_check=None):
 ''')
         env = {key: value for key, value in os.environ.items()
                if not key.startswith(("AWS_", "TF_VAR_", "TF_CLI_ARGS"))}
-        (ROOT / ".infra/provider-cache").mkdir(parents=True, exist_ok=True)
+        cache = Path(os.environ.get("TF_PLUGIN_CACHE_DIR") or ROOT / ".infra/provider-cache")
+        cache.mkdir(parents=True, exist_ok=True)
         env.update(TF_DATA_DIR=str(root / ".infra/data"), TF_WORKSPACE="default",
-                   TF_PLUGIN_CACHE_DIR=str(ROOT / ".infra/provider-cache"), AWS_EC2_METADATA_DISABLED="true")
+                   TF_PLUGIN_CACHE_DIR=str(cache), AWS_EC2_METADATA_DISABLED="true")
         plan = root / ".infra/fixture.tfplan"
         plant_checks_bundle(root)
 

@@ -44,7 +44,7 @@ def require_version(tool: str, root: Path, env: dict):
 
 
 def lint(root: Path, stack: Path, variables: Path, cloud: str):
-    env = {**os.environ, "TFLINT_PLUGIN_DIR": str(root / ".infra/tflint-plugins")}
+    env = {**os.environ, "TFLINT_PLUGIN_DIR": os.environ.get("TFLINT_PLUGIN_DIR") or str(root / ".infra/tflint-plugins")}
     require_version("tflint", root, env)
     arguments = ["tflint", f"--chdir={stack}", f"--config={root / '.tflint.hcl'}", "--no-color"]
     plugin = {"aws": "aws", "azure": "azurerm", "gcp": "google"}.get(cloud)

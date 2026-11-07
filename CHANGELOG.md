@@ -31,5 +31,7 @@ First release of the template.
   reviewing team.
 - OpenTofu-only CI, Dependabot updates for root provider locks, pinned tools in
   `mise.toml`, and optional `just` aliases for native commands.
+- The check tools use `TF_PLUGIN_CACHE_DIR` and `TFLINT_PLUGIN_DIR` when they are set,
+  so provider and plugin caches can live outside the checkout.
 - English and Korean getting-started guides, plus architecture, cloud setup,
   bootstrap, operations, quality, Atlantis, security, and contribution guides.
