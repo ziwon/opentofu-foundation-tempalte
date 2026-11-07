@@ -8,6 +8,40 @@
   "parallel_apply": false,
   "projects": [
     {
+      "name": "dev/aws/identity/github-actions-oidc",
+      "dir": "live/dev/aws/identity/github-actions-oidc",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tofu",
+          "*.tf.json",
+          "*.tofu.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tf",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tofu",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tf.json",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tofu.json",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/context/**/*.tofu",
+          "../../../../../modules/context/**/*.tf.json",
+          "../../../../../modules/context/**/*.tofu.json",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tf",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tofu",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tf.json",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tofu.json",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
       "name": "dev/aws/network/core",
       "dir": "live/dev/aws/network/core",
       "workspace": "default",
@@ -216,6 +250,40 @@
       }
     },
     {
+      "name": "prod/aws/identity/github-actions-oidc",
+      "dir": "live/prod/aws/identity/github-actions-oidc",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tofu",
+          "*.tf.json",
+          "*.tofu.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tf",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tofu",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tf.json",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tofu.json",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/context/**/*.tofu",
+          "../../../../../modules/context/**/*.tf.json",
+          "../../../../../modules/context/**/*.tofu.json",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tf",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tofu",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tf.json",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tofu.json",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
       "name": "prod/aws/network/core",
       "dir": "live/prod/aws/network/core",
       "workspace": "default",
@@ -416,6 +484,40 @@
           "../../../../../stacks/gcp/storage/bucket/**/*.tofu",
           "../../../../../stacks/gcp/storage/bucket/**/*.tf.json",
           "../../../../../stacks/gcp/storage/bucket/**/*.tofu.json",
+          "../../../../../tools/quality.py",
+          "../../../../../mise.toml",
+          "../../../../../.tflint.hcl",
+          "../../../../../atlantis.yaml"
+        ]
+      }
+    },
+    {
+      "name": "stage/aws/identity/github-actions-oidc",
+      "dir": "live/stage/aws/identity/github-actions-oidc",
+      "workspace": "default",
+      "terraform_distribution": "opentofu",
+      "terraform_version": "1.12.5",
+      "autoplan": {
+        "enabled": false,
+        "when_modified": [
+          "*.tf",
+          "*.tofu",
+          "*.tf.json",
+          "*.tofu.json",
+          "*.tfvars.json",
+          ".terraform.lock.hcl",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tf",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tofu",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tf.json",
+          "../../../../../modules/aws/github-actions-oidc/**/*.tofu.json",
+          "../../../../../modules/context/**/*.tf",
+          "../../../../../modules/context/**/*.tofu",
+          "../../../../../modules/context/**/*.tf.json",
+          "../../../../../modules/context/**/*.tofu.json",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tf",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tofu",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tf.json",
+          "../../../../../stacks/aws/identity/github-actions-oidc/**/*.tofu.json",
           "../../../../../tools/quality.py",
           "../../../../../mise.toml",
           "../../../../../.tflint.hcl",
