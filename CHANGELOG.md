@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- The layout check reads each root's module calls and requires `module "stack"` to use
+  the exact `../../../../../stacks/<cloud>/<group>/<stack>` source, so a comment that
+  names the path no longer hides a call to another directory. The layout check and
+  `tools/check.py` discover a stack by any `.tf` file, not only `main.tf`. The core
+  network modules export `subnet_cidr`, and the AWS and Azure modules also export
+  `network_cidr`. Stack tests now pin the network CIDR wiring and the GCP workload
+  bucket's absent soft delete policy. Plans do not change.
 - The local catalog entry moved into the core module `modules/local/catalog`, which
   `stacks/local/foundation/catalog` calls as `module "catalog"`. Its address changed
   from `module.stack.terraform_data.catalog` to
