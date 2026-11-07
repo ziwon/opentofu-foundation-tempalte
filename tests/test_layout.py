@@ -110,6 +110,45 @@ class LayoutTests(unittest.TestCase):
             'module "stack" {\n', 'module "stack" {\n  # source = "../../../../../stacks/local/foundation/catalog"\n'))
         self.assertRejected("Root does not call its stack", "dev/local/foundation/catalog")
 
+    def shadow_stack(self):
+        shadow = self.root / "vendor/local/foundation/shadow"
+        shutil.copytree(self.stack, shadow)
+        return "../../../../../vendor/local/foundation/shadow"
+
+    def test_override_and_json_files_cannot_redirect_the_stack(self):
+        wrong = self.shadow_stack()
+        for name in ("override.tf", "a_override.tf", "main_override.tofu"):
+            with self.subTest(name):
+                (self.live / name).write_text(f'module "stack" {{\n  source = "{wrong}"\n}}\n')
+                self.assertRejected(name, "dev/local/foundation/catalog")
+                (self.live / name).unlink()
+        (self.live / "extra.tf.json").write_text("{}\n")
+        self.assertRejected("extra.tf.json", "dev/local/foundation/catalog")
+
+    def test_block_comments_and_nested_keys_cannot_name_the_stack(self):
+        wrong = self.shadow_stack()
+        main = self.live / "main.tf"
+        original = main.read_text()
+        expected = "../../../../../stacks/local/foundation/catalog"
+        cases = {
+            "block comment": original.replace(f'  source      = "{expected}"', f'  /* source = "{expected}" */\n  source      = "{wrong}"'),
+            "comment after code": original.replace(f'  source      = "{expected}"', f'  description = var.description /*\n  source = "{expected}"\n  */\n  source      = "{wrong}"'),
+            "nested map key": original.replace(f'  source      = "{expected}"', f'  labels = {{\n    source = "{expected}"\n  }}\n  source      = "{wrong}"'),
+        }
+        for case, text in cases.items():
+            with self.subTest(case):
+                assert text != original, case
+                main.write_text(text)
+                self.assertRejected("Root does not call its stack", "dev/local/foundation/catalog")
+        main.write_text(original)
+
+    def test_policy_strings_with_slash_star_do_not_hide_the_stack(self):
+        main = self.live / "main.tf"
+        main.write_text('locals {\n  object_arns = "arn:aws:s3:::bucket/*"\n}\n' + main.read_text()
+                        + 'locals {\n  suffix = "*/logs"\n}\n')
+        result = check_layout(self.root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_stack_without_main_tf_is_discovered(self):
         orphan = self.root / "stacks/local/foundation/orphan"
         orphan.mkdir()
