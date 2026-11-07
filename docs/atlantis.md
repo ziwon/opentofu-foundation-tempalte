@@ -10,11 +10,10 @@ an Atlantis server or configure cloud identities.
 2. Install the pinned OpenTofu, Trivy, and TFLint versions from [mise.toml](../mise.toml).
 3. Expose OpenTofu as `tofu1.12.5` on the server's `PATH` for Atlantis's pinned
    version discovery. Keep `tofu`, `trivy`, and `tflint` available for verification tools.
-   Put the executables themselves on the Atlantis process's `PATH`. Do not expose mise
-   or asdf shims, and do not run `mise activate` for that process. A shim selects its
-   version from configuration in the current directory, which is the PR checkout.
-4. Provide persistent storage for Atlantis's data directory and retained PR plans.
-5. Configure least-privilege cloud and backend identities through [cloud setup](cloud-setup.md).
+4. Put the executables themselves on the Atlantis process's `PATH`. Do not expose mise
+   or asdf shims, and do not run `mise activate` for that process.
+5. Provide persistent storage for Atlantis's data directory and retained PR plans.
+6. Configure least-privilege cloud and backend identities through [cloud setup](cloud-setup.md).
 
 The server example sets `tf-download: false`. Install the pinned OpenTofu binary
 before starting Atlantis. Ordinary local deployment commands have no Atlantis or
@@ -40,26 +39,43 @@ before changing its pin.
 3. Point `repo-config` at the installed server repository policy.
 4. Keep `allowed_overrides` empty and `allow_custom_workflows` false.
 5. Keep the `foundation` workflow and its `approved`, `mergeable`, and `undiverged` apply requirements.
-6. Configure the VCS identity and webhook secret through your secret manager.
-7. Configure HTTPS, authenticated web access, branch protection, and required CI checks.
-   Replace the team in [CODEOWNERS](../.github/CODEOWNERS) and require Code Owner review.
-8. Dismiss stale approvals on new commits and keep `checkout-strategy: merge`.
+6. Keep `allow-fork-prs: false`. Restrict command authors with VCS permissions and
+   Atlantis team allowlists.
+7. Configure the VCS identity and webhook secret through your secret manager.
+8. Configure HTTPS, authenticated web access, branch protection, and required CI checks.
+9. Replace the team in [CODEOWNERS](../.github/CODEOWNERS) with the team that owns
+   deployment policy. Require Code Owner review in branch protection.
+10. Dismiss stale approvals on new commits and keep `checkout-strategy: merge`.
 
 ```sh
 atlantis server --config /etc/atlantis/server.yaml
 ```
 
-Keep `allow-fork-prs: false`. Restrict command authors with VCS permissions and
-Atlantis team allowlists. Server-owned workflow definitions still execute reviewed
-repository code, providers, and the quality helper. Apply approval alone does not
-make an untrusted plan safe.
+## Know what the checks trust
 
-The quality helper, its tool pins, and its lint rules come from the PR checkout.
-A PR can change the policy that checks it. The plan stage runs that changed policy.
-Code Owner review protects the policy files in the reviewed commit. GitHub does not
-report the PR as mergeable until the owning team approves, so the `mergeable`
-requirement blocks apply. Plan-stage code runs in the same checkout and can still
-change files on disk before apply. See [Atlantis security](https://www.runatlantis.io/docs/security.html).
+Server-owned workflow definitions still run repository code, providers, and the
+quality helper. The helper, its tool pins, and its lint rules come from the PR checkout. A PR can
+change the policy that checks it, and the plan stage runs the changed policy.
+Treat plan-stage code as untrusted.
+
+Code Owner review protects the policy files in the reviewed commit. CODEOWNERS
+assigns `tools/`, `mise.toml`, `.tflint.hcl`, `.github/`, and the Atlantis
+configuration to the policy team. GitHub does not report the PR as mergeable until
+that team approves, so the `mergeable` requirement blocks apply. Apply approval
+alone does not make an untrusted plan safe.
+
+Plan-stage code runs in the same checkout and can change files on disk before apply.
+For that reason, the server must own the OpenTofu, Trivy, and TFLint executables on
+its `PATH`. A mise or asdf shim selects its version from configuration in the current
+directory, which is the PR checkout. A PR could then replace the scanner. The helper
+checks the version that each tool reports, but it cannot prove that the executable is genuine.
+
+Review the saved plan before you approve apply. The apply stage scans source and the
+same saved `PLANFILE` before the built-in apply step, and OpenTofu applies only that
+plan. The scan and the review assume that nothing changed the plan file after planning.
+Plan-stage code runs in the same checkout, so that assumption rests on the controls above.
+Fork PRs stay disabled because a fork author is outside the trusted repository and
+author boundary. See [Atlantis security](https://www.runatlantis.io/docs/security.html).
 
 ## Activate selected deployments
 

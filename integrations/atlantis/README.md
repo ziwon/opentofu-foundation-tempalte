@@ -51,8 +51,8 @@ branch protection, and protected plan handling provide the deployment boundary.
 The server installs the pinned OpenTofu executable as `tofu1.12.5` because automatic
 binary downloads are disabled. Python, Trivy, and TFLint are required by explicit
 quality steps. They are not prerequisites for ordinary local `tofu` commands.
-Install them as executables on the server's `PATH`, not as version-manager shims.
-A shim resolves its version from the PR checkout, so a PR could replace the scanner.
+Install them as server-owned executables, not version-manager shims. See
+[what the checks trust](../../docs/atlantis.md#know-what-the-checks-trust).
 
 See the [server policy example](repos.yaml.example), [quality checks](../../docs/quality.md),
 and [security policy](../../SECURITY.md).

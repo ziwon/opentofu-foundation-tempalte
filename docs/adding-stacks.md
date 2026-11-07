@@ -38,8 +38,9 @@ variable "context" {
 ```
 
 Stacks declare provider requirements but do not configure providers, choose cloud
-identities, or declare backends. Put cloud-specific naming and resource relationships
-in the stack. Return outputs that callers need.
+identities, or declare backends. Put resource relationships in the stack and
+cloud-specific name rules in the core module that owns the resource. Return outputs
+that callers need.
 
 Create a live root that calls `modules/context` in `context.tf` and the stack
 as `module "stack"` in `main.tf` with
@@ -53,7 +54,7 @@ Include these root files:
 - `providers.tf` for external providers.
 - `terraform.tfvars.json` with reviewed non-secret values.
 - `.terraform.lock.hcl` for external provider selections.
-- Plan-only mocked tests for deployment wiring and input behavior.
+- Plan-only tests for deployment wiring and input behavior. Cloud roots mock their providers.
 - `migrations.tf` when existing resource addresses move.
 
 When a resource's address changes, add a `moved` block in the module that now
@@ -120,7 +121,9 @@ requires a no-op move. Keep the resource's arguments and their types unchanged w
 you move it. A value of a different type, such as a map where state recorded an
 object, plans an update even when the JSON looks equal.
 
-Add mocked plan-only tests under the module's `tests/` directory. `tools/check.py`
+Add tests under the module's `tests/` directory. Cloud module tests plan against
+mocked providers. The local catalog tests need no mocks, and the stack test applies
+a disposable local `terraform_data`. `tools/check.py`
 runs them with the provider lock of any dev root for the same cloud. Regenerate the
 Atlantis project example afterward. Each project watches every local module that
 its root reaches, so the new module appears in the `when_modified` patterns of the

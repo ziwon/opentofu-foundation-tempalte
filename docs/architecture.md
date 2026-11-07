@@ -36,8 +36,9 @@ The repository has three layers.
 
 Stacks and core modules declare required providers but do not configure providers
 or backends. A stack accepts only consumed resource inputs plus a typed `context`
-object with `id` and `tags`. The supplied stacks declare their resources directly,
-so `modules/` holds only `modules/context`.
+object with `id` and `tags`. Besides `modules/context`, `modules/` holds core
+modules under `modules/local`, `modules/aws`, `modules/azure`, and `modules/gcp`.
+Every supplied stack calls at least one of them.
 
 The stack layer separates purpose from implementation. A state-bucket stack and a
 data-bucket stack can call one bucket module with different settings. A fix to that
@@ -54,8 +55,10 @@ Each root's `context.tf` calls `modules/context`. `module.context.id` supplies t
 metadata with optional live-input tags. Providers use those outputs directly, and
 resources receive them through the stack's `context` input.
 
-Cloud-specific transformations remain in the stack, including Azure account
-character restrictions and account or project suffixes for storage names. Adding
+Cloud-specific name rules live in the core module that owns the resource.
+`modules/aws/s3-bucket` and `modules/gcp/storage-bucket` add the account or project
+suffix, and `modules/azure/storage-account` applies the Azure account character
+limits. Adding
 tags does not change names. See [names and tags](context.md).
 
 ## Explicit state locations
