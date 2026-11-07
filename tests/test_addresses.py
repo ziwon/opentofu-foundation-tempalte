@@ -148,3 +148,46 @@ class SubsetTests(unittest.TestCase):
         moved = 'moved {\n  from = terraform_data.x\n  to   = terraform_data.y\n}\n'
         with self.assertRaisesRegex(ValueError, "Legacy address"):
             self.trace({"main.tf": 'resource "terraform_data" "y" {}\n', ".moves.tf": moved})
+
+
+class LiteralTests(unittest.TestCase):
+    """Module sources and labels are plain ASCII, so the check reads the directory OpenTofu loads."""
+
+    def trace(self, files):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, content in files.items():
+                (root / name).mkdir(parents=True, exist_ok=True) if content is None else None
+                if content is not None:
+                    (root / name).parent.mkdir(parents=True, exist_ok=True)
+                    (root / name).write_text(content)
+            verify_continuity(["terraform_data.x"], *managed_addresses(root))
+
+    def test_escaped_or_non_ascii_sources_are_rejected(self):
+        resource = 'resource "terraform_data" "x" {}\n'
+        for case, source, directory in (("unicode escape", "./a\\u0062", "a0062"),
+                                        ("tab escape", "./a\\tb", "ab"),
+                                        ("escaped slash", "./a\\u002fb", "a002fb"),
+                                        ("escaped quote", './a\\"b', "ab"),
+                                        ("decomposed accent", "./é", "é")):
+            files = {
+                "main.tf": f'module "m" {{\n  source = "{source}"\n}}\nmoved {{\n  from = terraform_data.x\n  to   = module.m.terraform_data.x\n}}\n',
+                f"{directory}/main.tf": resource,
+            }
+            with self.subTest(case), self.assertRaisesRegex(ValueError, "Cannot trace"):
+                self.trace(files)
+
+    def test_escaped_labels_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Cannot trace"):
+            self.trace({"main.tf": 'resource "terraform_data" "x\\u0078" {}\n'})
+
+    def test_malformed_inputs_fail_as_value_errors(self):
+        for case, files in (("moved without to", {"main.tf": 'resource "terraform_data" "x" {}\nmoved {\n  from = terraform_data.x\n}\n'}),
+                            ("directory named like a file", {"main.tf": 'resource "terraform_data" "x" {}\n', "x.tf": None})):
+            with self.subTest(case):
+                try:
+                    self.trace(files)
+                except ValueError:
+                    continue
+                except Exception as error:
+                    self.fail(f"{type(error).__name__}: {error}")
