@@ -28,6 +28,11 @@ The composition declares `context` as `object({ id = string, tags = map(string) 
 Its resources use `var.context.id` and `var.context.tags`. Cloud-specific name
 transformations stay with those resources.
 
+Azure storage account names allow 24 lowercase letters and digits. The modules
+remove hyphens from the ID and keep its first 18 characters. If the ID fits, the
+suffix is 6 characters of the subscription ID hash. If it is truncated, the suffix
+hashes the subscription and the full ID, so environments in one subscription stay distinct.
+
 ## Provider and resource tags
 
 AWS provider defaults receive the common tags from the root:

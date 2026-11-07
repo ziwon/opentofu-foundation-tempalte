@@ -90,6 +90,20 @@ def smoke(workflow_check=None):
         rejected(security, root, directory, variables, plan=plan)
         if workflow_check:
             workflow_check(directory, plan, env, False)
+        main.write_text(safe.replace("  ingress     = []", '''  #trivy:ignore:*
+  ingress {
+    description = "Suppressed unsafe fixture"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }'''))
+        rejected(security, root, directory, variables)
+        native("plan", "-input=false", "-refresh=false", f"-out={plan}")
+        main.write_text(safe)
+        rejected(security, root, directory, variables, plan=plan)
+        if workflow_check:
+            workflow_check(directory, plan, env, False)
         plan.write_bytes(b"unrecognized plan")
         rejected(security, root, directory, variables, plan=plan)
 

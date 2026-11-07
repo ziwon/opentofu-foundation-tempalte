@@ -1,3 +1,9 @@
+locals {
+  compact_id = replace(var.context.id, "-", "")
+  # Keep existing names when nothing is truncated; otherwise hash the full ID so environments stay distinct.
+  account_suffix = sha1(length(local.compact_id) > 18 ? "${var.subscription_id}/${var.context.id}" : var.subscription_id)
+}
+
 resource "azurerm_resource_group" "this" {
   name     = "${var.context.id}-rg"
   location = var.location
@@ -5,7 +11,7 @@ resource "azurerm_resource_group" "this" {
   lifecycle { prevent_destroy = true }
 }
 resource "azurerm_storage_account" "this" {
-  name                            = "${substr(replace(var.context.id, "-", ""), 0, 18)}${substr(sha1(var.subscription_id), 0, 6)}"
+  name                            = "${substr(local.compact_id, 0, 18)}${substr(local.account_suffix, 0, 6)}"
   resource_group_name             = azurerm_resource_group.this.name
   location                        = azurerm_resource_group.this.location
   account_tier                    = "Standard"

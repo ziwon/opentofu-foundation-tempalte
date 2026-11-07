@@ -26,3 +26,33 @@ run "private_versioned_storage" {
     error_message = "Blob versions and HTTPS must remain enabled."
   }
 }
+
+run "short_account_name_is_stable" {
+  command = plan
+  assert {
+    condition     = azurerm_storage_account.this.name == "starterfixturedevb602d5"
+    error_message = "Names that fit without truncation must keep their existing value."
+  }
+}
+
+run "truncated_dev_account_name" {
+  command = plan
+  variables {
+    context = { "id" : "acmeplatform-storage-dev", "tags" : { "project" : "acmeplatform", "environment" : "dev", "managed_by" : "iac" } }
+  }
+  assert {
+    condition     = azurerm_storage_account.this.name == "acmeplatformstoragf2a1ba"
+    error_message = "A truncated name must keep the full deployment identity in its suffix."
+  }
+}
+
+run "truncated_prod_account_name" {
+  command = plan
+  variables {
+    context = { "id" : "acmeplatform-storage-prod", "tags" : { "project" : "acmeplatform", "environment" : "prod", "managed_by" : "iac" } }
+  }
+  assert {
+    condition     = azurerm_storage_account.this.name == "acmeplatformstorag9c711f"
+    error_message = "Environments in one subscription must not share a truncated name."
+  }
+}

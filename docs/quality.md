@@ -41,9 +41,12 @@ malformed reports, and unrecognized inputs cannot silently pass. Only diagnostic
 check IDs are printed. Raw reports and configuration values stay in memory.
 
 Global Trivy configuration, ignore files, `TRIVY_*` overrides, telemetry, and
-automatic check downloads are disabled. There are no blanket suppressions.
-Any narrowly scoped inline exception needs a reviewed reason and expiry.
-Create a new plan after changing source, inputs, exceptions, or quality policy.
+automatic check downloads are disabled. Trivy removes suppressed findings from
+its report, so the helper rejects inline `trivy:ignore` and `tfsec:ignore` comments.
+A source scan checks every `.tf` and `.tf.json` file in the repository. A plan scan
+checks the configuration embedded in the saved plan, including downloaded modules.
+To accept a finding, change the quality policy in a reviewed pull request.
+Create a new plan after changing source, inputs, or quality policy.
 
 Native `tofu plan` and `tofu apply` do not enforce these checks. Trusted automation
 must run them as explicit steps and stop on failure. The helper does not approve
