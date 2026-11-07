@@ -1,0 +1,2 @@
+[tools]
+"pipx:prowler" = "5.48.0"

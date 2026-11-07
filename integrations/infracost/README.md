@@ -3,6 +3,9 @@
 This optional integration prices a saved plan with Infracost 0.10.47. The template's
 checks, CI, and Atlantis workflow do not use it, and every root works without it.
 
+**Verification status.** The recipe is checked up to the point where Infracost
+needs an API key. A priced breakdown has not run in this repository's checks.
+
 Infracost looks up prices through the Infracost pricing API, so it needs network
 access and an API key. Its estimates are advisory. They use list prices and assumed
 usage, and they do not replace a review of the plan or your cloud bill.

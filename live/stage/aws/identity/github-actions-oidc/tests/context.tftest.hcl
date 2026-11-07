@@ -32,3 +32,22 @@ run "role_names_follow_deployment" {
     error_message = "Role names must carry the deployment ID so environments sharing an account do not collide."
   }
 }
+
+run "audit_role_is_opt_in" {
+  command = plan
+  assert {
+    condition     = !contains(keys(output.roles), "audit")
+    error_message = "The committed inputs must create no audit role."
+  }
+}
+
+run "audit_role_follows_deployment" {
+  command = plan
+  variables {
+    audit_subjects = ["repo:octo-org/octo-repo:environment:security-audit"]
+  }
+  assert {
+    condition     = output.roles.audit.name == "${var.namespace}-${var.name}-${var.environment}-audit"
+    error_message = "Setting audit_subjects must add the <deployment name>-audit role."
+  }
+}

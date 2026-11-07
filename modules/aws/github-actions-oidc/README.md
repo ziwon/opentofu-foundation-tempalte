@@ -4,6 +4,10 @@ Core module that lets GitHub Actions jobs assume AWS IAM roles through OpenID
 Connect, without stored access keys. It owns the account's IAM OIDC provider for
 `token.actions.githubusercontent.com` and one IAM role for each entry in `roles`.
 
+**Verification status.** Plans, mocked tests, and rendered trust policies are
+checked offline. This module has not yet run against a live AWS account or a real
+GitHub token. Test it in a sandbox account before you rely on it.
+
 An AWS account holds at most one OIDC provider for each issuer URL. With
 `create_oidc_provider = true`, the default, the module creates that provider with
 the `sts.amazonaws.com` audience. With `false`, it looks up the provider that

@@ -51,6 +51,9 @@ makes any plan that destroys the bucket or key fail. That is not a backup or ret
 
 ### Let GitHub Actions assume an AWS role
 
+This setup is checked offline only. It has not yet run against a live AWS account or
+a real GitHub token, so test it in a sandbox account first.
+
 The `live/<environment>/aws/identity/github-actions-oidc` roots create IAM roles
 that GitHub Actions jobs assume with short-lived OIDC tokens instead of stored keys.
 See [`modules/aws/github-actions-oidc`](../modules/aws/github-actions-oidc/README.md)
@@ -99,6 +102,11 @@ A job that sets `environment: dev` presents the subject
 for a branch push presents `repo:<owner>/<repo>:ref:refs/heads/<branch>`. The role trusts only the subjects
 listed in its `subjects` and `subject_patterns`. Restrict which branches can deploy
 to a GitHub environment with its deployment branch rules.
+
+To scan an account with Prowler, set `audit_subjects` in its identity root. The root
+then adds a read-only `<deployment name>-audit` role. The
+[Prowler integration](../integrations/prowler/README.md) has the role's permissions
+and a workflow example.
 
 ## Azure
 
