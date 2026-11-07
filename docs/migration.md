@@ -33,6 +33,16 @@ These blocks tell OpenTofu that the resource at the old address is the same
 resource at the new address. Keep them committed so roots with older state can
 still upgrade. Do not remove and reimport resources merely because the code moved.
 
+`python3 tools/check_layout.py` enforces this without state or cloud access.
+`tools/legacy-addresses.json` lists the addresses each shared stack declared.
+For every live root, the check follows each listed address through the `moved`
+blocks in the root and in every local module it calls. Each address must end at
+a distinct managed resource that the code still declares. A `moved` block must
+point at a declared resource or at the `from` of another move. The check rejects
+`count`, `for_each`, and non-local module sources, because it cannot trace them.
+It does not know about resources you added to your own copy of the old layout.
+Add those addresses to the inventory before you rely on the check.
+
 ## Prepare the existing state
 
 1. Stop concurrent operations on the deployment. Record the current source revision,

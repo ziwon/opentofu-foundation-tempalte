@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The layout check requires every managed address from the shared-root layout,
+  frozen in `tools/legacy-addresses.json`, to reach a distinct current resource
+  through `moved` blocks. It follows local module calls at every depth. A missing
+  move, which would plan a destroy and create, now fails the check before any plan.
+  `count`, `for_each`, and non-local module sources fail as unsupported.
 - Trivy scans use a new temporary cache and module directory. A checks bundle
   committed under `.infra/` can no longer replace the bundled checks.
 - `.github/CODEOWNERS` assigns the quality helper, tool pins, lint rules, CI, and

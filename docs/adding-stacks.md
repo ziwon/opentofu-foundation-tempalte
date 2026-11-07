@@ -53,6 +53,25 @@ Include these root files:
 - Plan-only mocked tests for deployment wiring and input behavior.
 - `migrations.tf` when existing resource addresses move.
 
+When a resource's address changes, add a `moved` block in the module that now
+declares the new address. Write `from` and `to` relative to that module. For
+example, moving `aws_vpc.this` into a nested `module "vpc"` of the composition
+needs this block in the composition:
+
+```hcl
+moved {
+  from = aws_vpc.this
+  to   = module.vpc.aws_vpc.this
+}
+```
+
+Keep the earlier moves. The root's `moved` block still takes the shared-root
+address to `module.stack.aws_vpc.this`, and the composition's block continues
+the chain. The layout check fails when any address in
+`tools/legacy-addresses.json` stops before a declared resource. New resources
+need no moves. The check rejects `count`, `for_each`, and non-local module
+sources because it cannot trace their addresses.
+
 Test resource behavior within the composition and deployment behavior from the
 root. Keep assertions meaningful for encryption, private networking, retention,
 identity, names, and tags. A root cannot directly inspect a child module's private
