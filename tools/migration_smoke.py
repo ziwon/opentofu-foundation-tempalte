@@ -97,8 +97,7 @@ def verify(root: Path, artifacts: Path | None) -> None:
             require(before[DEPLOYMENTS[0]].resources[OLD_ADDRESS]["id"] !=
                     before[DEPLOYMENTS[1]].resources[OLD_ADDRESS]["id"],
                     "Baseline dev and prod must have isolated resource IDs")
-            shutil.rmtree(repository / "stacks")
-            for name in ("modules", "live"):
+            for name in ("modules", "stacks", "live"):
                 shutil.rmtree(repository / name)
                 shutil.copytree(root / name, repository / name,
                                 ignore=shutil.ignore_patterns(".terraform", ".infra", "__pycache__"))

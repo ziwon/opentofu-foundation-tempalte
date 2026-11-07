@@ -36,15 +36,15 @@ updates:
       - /live/stage/gcp/bootstrap/state
       - /live/stage/gcp/network/core
       - /live/stage/gcp/storage/bucket
-      - /modules/aws/bootstrap/state
-      - /modules/aws/network/core
-      - /modules/aws/storage/bucket
-      - /modules/azure/bootstrap/state
-      - /modules/azure/network/core
-      - /modules/azure/storage/bucket
-      - /modules/gcp/bootstrap/state
-      - /modules/gcp/network/core
-      - /modules/gcp/storage/bucket
+      - /stacks/aws/bootstrap/state
+      - /stacks/aws/network/core
+      - /stacks/aws/storage/bucket
+      - /stacks/azure/bootstrap/state
+      - /stacks/azure/network/core
+      - /stacks/azure/storage/bucket
+      - /stacks/gcp/bootstrap/state
+      - /stacks/gcp/network/core
+      - /stacks/gcp/storage/bucket
     schedule:
       interval: weekly
     groups:

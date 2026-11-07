@@ -20,3 +20,4 @@ __pycache__/
 .vscode/
 # Commit provider lock files under executable live roots.
 /modules/**/.terraform.lock.hcl
+/stacks/**/.terraform.lock.hcl

@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def smoke():
     with tempfile.TemporaryDirectory(prefix="native local smoke ") as temporary:
         root = Path(temporary)
-        for name in ("modules/context", "modules/local", "live/dev/local", "live/stage/local", "live/prod/local"):
+        for name in ("modules/context", "stacks/local", "live/dev/local", "live/stage/local", "live/prod/local"):
             shutil.copytree(ROOT / name, root / name, ignore=shutil.ignore_patterns(".terraform", "*.tfplan"))
         env = {key: value for key, value in os.environ.items()
                if not key.startswith(("TF_VAR_", "TF_CLI_ARGS", "TF_DATA_DIR", "TF_WORKSPACE"))}

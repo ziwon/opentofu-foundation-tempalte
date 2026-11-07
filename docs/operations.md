@@ -2,7 +2,7 @@
 
 ## Plan and apply a normal change
 
-Edit a root's inputs or its composition module. Run the relevant checks, initialize
+Edit a root's inputs or its stack. Run the relevant checks, initialize
 that root, and save a plan. The following commands run from the repository root:
 
 ```sh
@@ -69,7 +69,7 @@ retirement requires a separate review after all consumers move to another backen
 
 ## Update providers
 
-Update the required provider constraint in the composition and its roots together.
+Update the required provider constraint in the stack, any core modules it calls, and its roots together.
 Resolve and review each affected root's lock file:
 
 ```sh

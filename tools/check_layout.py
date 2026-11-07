@@ -17,11 +17,11 @@ def check(root: Path):
         if directory.is_dir() and not (directory / "terraform.tfvars.json").is_file():
             raise ValueError(f"Missing terraform.tfvars.json: {directory.relative_to(root / 'live')}")
     roots = sorted((root / "live").glob("*/*/*/*/terraform.tfvars.json"))
-    if not roots or (root / "stacks").exists():
-        raise ValueError("Use native live roots and reusable modules; no stacks runtime layer")
+    if not roots:
+        raise ValueError("No native roots under live/<environment>/<cloud>/<group>/<stack>")
     legacy = json.loads((root / "tools/legacy-addresses.json").read_text())
     states = set()
-    compositions = set()
+    stacks = set()
     for variables in roots:
         directory = variables.parent
         deployment = directory.relative_to(root / "live")
@@ -32,11 +32,10 @@ def check(root: Path):
         values = json.loads(variables.read_text())
         if values.get("environment") != environment:
             raise ValueError(f"Environment differs from directory: {deployment}")
-        module = root / "modules" / cloud / group / stack
-        compositions.add(module)
-        source = f'../../../../../modules/{cloud}/{group}/{stack}'
+        stacks.add(root / "stacks" / cloud / group / stack)
+        source = f'../../../../../stacks/{cloud}/{group}/{stack}'
         if not re.search(r'source\s*=\s*"' + re.escape(source) + '"', (directory / "main.tf").read_text()):
-            raise ValueError(f"Root does not call its resource module: {deployment}")
+            raise ValueError(f"Root does not call its stack {source}: {deployment}")
         backend = (directory / "backend.tf").read_text()
         block = re.search(r'backend\s+"([^"]+)"', backend)
         if not block:
@@ -64,16 +63,16 @@ def check(root: Path):
             verify_continuity(legacy.get(f"{cloud}/{group}/{stack}", []), *managed_addresses(directory))
         except ValueError as error:
             raise ValueError(f"{error}: {deployment}") from None
-    unmatched = set(legacy) - {"/".join(module.relative_to(root / "modules").parts) for module in compositions}
+    unmatched = set(legacy) - {"/".join(stack.relative_to(root / "stacks").parts) for stack in stacks}
     if unmatched:
         raise ValueError(f"Legacy address inventory has no root for {', '.join(sorted(unmatched))}; "
                          "keep the root or remove the entry after its state is retired")
-    discovered = {path.parent for path in (root / "modules").glob("*/*/*/main.tf")}
-    if compositions != discovered:
-        raise ValueError(f"Composition modules and live roots differ: {compositions ^ discovered}")
-    for path in (root / "modules").rglob("*.tf"):
+    discovered = {path.parent for path in (root / "stacks").glob("*/*/*/main.tf")}
+    if stacks != discovered:
+        raise ValueError(f"Stacks and the stacks live roots call differ: {sorted(path.relative_to(root).as_posix() for path in stacks ^ discovered)}")
+    for path in [*(root / "modules").rglob("*.tf"), *(root / "stacks").rglob("*.tf")]:
         if ".terraform" not in path.parts and re.search(r'\b(?:provider|backend)\s+"', path.read_text()):
-            raise ValueError(f"Reusable modules must not configure providers or backends: {path}")
+            raise ValueError(f"Modules and stacks must not configure providers or backends: {path}")
     for path in root.rglob("*.md"):
         if any(part.startswith(".") for part in path.relative_to(root).parts[:-1]):
             continue
@@ -84,7 +83,7 @@ def check(root: Path):
             destination = (path.parent / unquote(link.path)).resolve()
             if not destination.is_relative_to(root.resolve()) or not destination.exists():
                 raise ValueError(f"Broken local link in {path.relative_to(root)}: {target}")
-    print(f"Layout OK: {len(compositions)} modules, {len(roots)} native roots, unique state paths, valid local links")
+    print(f"Layout OK: {len(stacks)} stacks, {len(roots)} native roots, unique state paths, valid local links")
 
 
 if __name__ == "__main__":

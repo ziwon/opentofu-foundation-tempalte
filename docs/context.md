@@ -15,7 +15,7 @@ module "context" {
 
 `context.tf` is an ordinary root file. Provider configuration can reference
 `module.context.id` and `module.context.tags` directly. The root passes these
-outputs into its composition module:
+outputs into its stack:
 
 ```hcl
 context = {
@@ -24,7 +24,7 @@ context = {
 }
 ```
 
-The composition declares `context` as `object({ id = string, tags = map(string) })`.
+The stack declares `context` as `object({ id = string, tags = map(string) })`.
 Its resources use `var.context.id` and `var.context.tags`. Cloud-specific name
 transformations stay with those resources.
 
@@ -47,7 +47,7 @@ provider "aws" {
 }
 ```
 
-The network composition keeps the resource-specific `Name` tag separate:
+The network stack keeps the resource-specific `Name` tag separate:
 
 ```hcl
 resource "aws_vpc" "this" {

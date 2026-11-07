@@ -19,8 +19,10 @@ behavior, validation, and deployment impact. Include migration steps for resourc
 addresses, state locations, provider sources, or backend changes.
 
 Each `live/<environment>/<cloud>/<group>/<stack>` directory is an executable root.
-Keep its provider configuration, backend, values, and lock file together. Put shared
-resources in provider-free, backend-free composition modules. Keep ordinary
+Keep its provider configuration, backend, values, and lock file together. Put the
+root's resources in its stack under `stacks/<cloud>/<group>/<stack>`, and put
+building blocks that several stacks share in core modules under `modules/`. Stacks
+and modules configure no providers or backends. Keep ordinary
 `tofu init`, `plan`, `apply`, `output`, and `state` usable without repository Python.
 Do not add an implicit active environment or credentials in live values.
 

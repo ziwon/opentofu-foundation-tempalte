@@ -12,28 +12,49 @@ flowchart LR
     C[modules/context] --> D[dev root]
     C --> S[stage root]
     C --> P[prod root]
-    M[Resource composition module] --> D
-    M --> S
-    M --> P
+    K[stacks/cloud/group/stack] --> D
+    K --> S
+    K --> P
+    M[core modules] --> K
     D --> DS[dev state]
     S --> SS[stage state]
     P --> PS[prod state]
 ```
 
-The 30 roots use ten resource compositions under `modules/<cloud>/<group>/<stack>`.
-Composition modules declare required providers but do not configure providers or
-backends. They accept only consumed resource inputs plus a typed `context` object
-with `id` and `tags`. Each root calls its composition through `module "stack"`.
-There is no separate shared executable `stacks/` layer.
+## Roots call stacks, and stacks call core modules
+
+The repository has three layers.
+
+- `live/<environment>/<cloud>/<group>/<stack>` holds the executable roots. A root
+  owns its backend, providers, inputs, outputs, and lock, and calls one stack
+  through `module "stack"`.
+- `stacks/<cloud>/<group>/<stack>` holds purpose-specific compositions. A stack
+  declares the resources for one kind of deployment and may call core modules as
+  nested modules. The 30 roots call ten stacks.
+- `modules/` holds reusable core building blocks and the shared `modules/context`
+  naming convention.
+
+Stacks and core modules declare required providers but do not configure providers
+or backends. A stack accepts only consumed resource inputs plus a typed `context`
+object with `id` and `tags`. The supplied stacks declare their resources directly,
+so `modules/` holds only `modules/context`.
+
+The stack layer separates purpose from implementation. A state-bucket stack and a
+data-bucket stack can call one bucket module with different settings. A fix to that
+module then reaches both stacks without an edit to either root.
+
+The `stacks/` directory holds no executable roots. It is not the shared executable
+`stacks/` layout that the [migration guide](migration.md) replaces. Those
+directories had their own backends and providers and ran directly.
 
 ## Shared names and tags
 
 Each root's `context.tf` calls `modules/context`. `module.context.id` supplies the
 `<namespace>-<name>-<environment>` name. `module.context.tags` combines reserved
 metadata with optional live-input tags. Providers use those outputs directly, and
-resources receive them through the composition's `context` input.
+resources receive them through the stack's `context` input.
 
-Cloud-specific transformations remain in the composition, including Azure account
+Cloud-specific transformations remain in the stack, including Azure account
 character restrictions and account or project suffixes for storage names. Adding
 tags does not change names. See [names and tags](context.md).
 
@@ -53,8 +74,8 @@ S3 uses lock files, Azure uses Blob leases, and GCS uses native state locking.
 Initialization connects to existing storage. [Bootstrap roots](bootstrap.md)
 provision storage separately and retain independent local state.
 
-Backend identity and resource address are separate concerns. The module move
-changes `aws_vpc.this` to `module.stack.aws_vpc.this`, for example. Root-owned
+Backend identity and resource address are separate concerns. The move into
+`module "stack"` changes `aws_vpc.this` to `module.stack.aws_vpc.this`, for example. Root-owned
 `migrations.tf` files declare these moves while preserving the backend location.
 See the [migration guide](migration.md).
 

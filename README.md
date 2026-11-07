@@ -16,7 +16,7 @@ not require Python, a generator, or a repository runner.
 live/dev/aws/network/core/       executable deployment root
   backend.tf                    explicit state location
   context.tf                    shared name and tags
-  main.tf                       module "stack" composition
+  main.tf                       module "stack" call
   providers.tf                  account and provider configuration
   versions.tf                   OpenTofu and provider requirements
   .terraform.lock.hcl           provider selections
@@ -24,14 +24,20 @@ live/dev/aws/network/core/       executable deployment root
   terraform.tfvars.json         non-secret deployment values
   outputs.tf                    deployment outputs
   migrations.tf                 previous resource addresses
+stacks/aws/network/core/        purpose-specific composition the root calls
 modules/context/                name and tag convention
-modules/aws/network/core/       reusable resource implementation
+modules/<cloud>/<module>/       reusable core building blocks
 ```
 
 A deployment is `environment/cloud/group/stack`. The 30 supplied roots cover AWS,
 Azure, and GCP network, storage, and state bootstrap examples, plus a local catalog,
 in dev, stage, and prod. Each leaf runs independently and uses the default workspace.
-Composition modules have no backend or provider configuration.
+
+The repository has three layers. A `live/` root owns state, providers, and inputs,
+and calls exactly one stack as `module "stack"`. A stack under
+`stacks/<cloud>/<group>/<stack>` composes resources for one purpose and may call core
+modules from `modules/`. Core modules hold reusable building blocks and the shared
+`modules/context` convention. Stacks and modules have no backend or provider configuration.
 
 ## Quick start without a cloud account
 
@@ -97,8 +103,8 @@ Each root calls `modules/context` in `context.tf`. Its `module.context.id` is
 metadata with optional `tags` from the live inputs. The keys `project`,
 `environment`, and `managed_by` are reserved.
 
-The root passes these outputs to its composition module through a typed `context`
-object with `id` and `tags`. The composition owns resources and cloud-specific name
+The root passes these outputs to its stack through a typed `context`
+object with `id` and `tags`. The stack owns resources and cloud-specific name
 transformations. Providers remain in the root. See [names and tags](docs/context.md)
 and [adding deployments](docs/adding-stacks.md).
 

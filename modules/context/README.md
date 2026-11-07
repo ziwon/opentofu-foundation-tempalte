@@ -14,7 +14,7 @@ module "context" {
 ```
 
 Place this call in the live root's `context.tf`. Pass `module.context.id` and
-`module.context.tags` to the composition's typed `context` input. Resources use
+`module.context.tags` to the stack's typed `context` input. Resources use
 `var.context.id` for names and `var.context.tags` for common tags or labels. The ID remains
 `<namespace>-<name>-<environment>`; each segment accepts 1–16 lowercase letters,
 digits, or hyphens, beginning with a letter. Adding tags does not change the ID.
@@ -39,7 +39,7 @@ map where supported. Azure resources receive `tags` explicitly. AWS `Name` tags
 belong to individual resources, so subnets can use `${var.context.id}-private`
 without sharing the VPC's display name. For GCP, these are labels, not Resource
 Manager tags or Compute Engine network tags. Cloud-specific naming adapters
-(for example Azure storage-account names without hyphens) remain in each resource composition.
+(for example Azure storage-account names without hyphens) remain in each stack.
 
 See [the context guide](../../docs/context.md) for resource examples and
 environment configuration.

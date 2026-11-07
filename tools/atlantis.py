@@ -8,6 +8,8 @@ from pathlib import Path
 import re
 import sys
 
+from addresses import module_directories
+
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = Path("integrations/atlantis/atlantis.yaml.example")
 
@@ -31,7 +33,10 @@ def configuration(root: Path, names=(), autoplan=False) -> dict:
         if not names and re.search(r'backend\s+"local"', (directory / "backend.tf").read_text()):
             continue
         repository = os.path.relpath(root, directory)
-        module = "/".join(name.split("/")[1:])
+        try:
+            modules = sorted(module.relative_to(root.resolve()).as_posix() for module in module_directories(directory))
+        except ValueError as error:
+            raise ValueError(f"{error}: {name}") from None
         projects.append({
             "name": name,
             "dir": directory.relative_to(root).as_posix(),
@@ -42,8 +47,7 @@ def configuration(root: Path, names=(), autoplan=False) -> dict:
                 "enabled": autoplan,
                 "when_modified": [
                     "*.tf", "*.tf.json", "*.tfvars.json", ".terraform.lock.hcl",
-                    f"{repository}/modules/context/**/*.tf",
-                    f"{repository}/modules/{module}/**/*.tf",
+                    *(f"{repository}/{module}/**/*.tf" for module in modules),
                     f"{repository}/tools/quality.py", f"{repository}/mise.toml",
                     f"{repository}/.tflint.hcl", f"{repository}/atlantis.yaml",
                 ],

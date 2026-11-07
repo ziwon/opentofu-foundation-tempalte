@@ -22,14 +22,20 @@ live/dev/aws/network/core/        독립적인 OpenTofu 루트
   terraform.tfvars.json          비밀이 아닌 배포별 값
   outputs.tf                     배포 출력
   migrations.tf                  기존 리소스 주소의 이동 선언
+stacks/aws/network/core/         루트가 호출하는 용도별 구성
 modules/context/                 공통 이름과 태그 규칙
-modules/aws/network/core/        재사용할 리소스 구현
+modules/<cloud>/<module>/        재사용할 핵심 구성 요소
 ```
 
 배포 ID는 `environment/cloud/group/stack`입니다. AWS, Azure, GCP의 네트워크,
 스토리지, 상태 저장소 bootstrap과 로컬 catalog를 dev, stage, prod에 제공하므로
 총 30개 루트가 있습니다. 각 루트는 기본 workspace를 사용합니다.
-공통 모듈에는 backend나 provider 설정을 넣지 않습니다.
+
+저장소는 세 계층으로 나뉩니다. `live/` 루트는 상태, provider, 입력을 소유하고
+stack 하나를 `module "stack"`으로 호출합니다. `stacks/<cloud>/<group>/<stack>`의
+stack은 한 가지 용도에 맞게 리소스를 구성하며 `modules/`의 핵심 모듈을 호출할 수 있습니다.
+핵심 모듈에는 재사용할 구성 요소와 공통 규칙인 `modules/context`가 있습니다.
+Stack과 모듈에는 backend나 provider 설정을 넣지 않습니다.
 
 ## 클라우드 계정 없이 시작하기
 
@@ -113,8 +119,8 @@ workload의 `backend.tf`에 옮기고, 해당 workload의 명시적인 key나 pr
 `project`, `environment`, `managed_by`는 예약된 키이므로 덮어쓸 수 없습니다.
 
 루트는 `id`와 `tags`가 있는 `context` 객체를 `module.stack`에 전달합니다.
-리소스 모듈은 `var.context.id`, `var.context.tags`를 사용합니다.
-Provider 설정은 루트에 두고, 클라우드별 이름 변환은 리소스 모듈에 둡니다.
+Stack은 `var.context.id`, `var.context.tags`를 사용합니다.
+Provider 설정은 루트에 두고, 클라우드별 이름 변환은 stack에 둡니다.
 [이름과 태그](docs/context.md), [배포 추가](docs/adding-stacks.md)를 참고하세요.
 
 ## 기존 상태 마이그레이션

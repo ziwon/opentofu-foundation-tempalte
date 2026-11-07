@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def copy_local_template(root):
-    for name in ("live/dev/local", "modules/local", "modules/context"):
+    for name in ("live/dev/local", "stacks/local", "modules/context"):
         shutil.copytree(ROOT / name, root / name,
                         ignore=shutil.ignore_patterns(".terraform", "*.md", "*.tfplan"))
     shutil.copyfile(ROOT / "mise.toml", root / "mise.toml")
@@ -31,7 +31,7 @@ class LayoutExtensionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             copy_local_template(root)
-            module = root / "modules/local/foundation/catalog/main.tf"
+            module = root / "stacks/local/foundation/catalog/main.tf"
             module.write_text(module.read_text() + '\nresource "terraform_data" "new_metadata" {}\n')
             directory = root / "live/dev/local/foundation/catalog"
             command = [sys.executable, str(root / "tools/check_layout.py")]
@@ -76,7 +76,7 @@ class AddressContinuityTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         copy_local_template(self.root)
-        self.module = self.root / "modules/local/foundation/catalog"
+        self.module = self.root / "stacks/local/foundation/catalog"
         self.live = self.root / "live/dev/local/foundation/catalog"
 
     def assertRejected(self, *fragments):
@@ -136,7 +136,7 @@ class AddressContinuityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             copy_local_template(root)
-            for base in ("modules/local/foundation", "live/dev/local/foundation"):
+            for base in ("stacks/local/foundation", "live/dev/local/foundation"):
                 (root / base / "catalog").rename(root / base / "register")
             directory = root / "live/dev/local/foundation/register"
             (directory / "migrations.tf").unlink()

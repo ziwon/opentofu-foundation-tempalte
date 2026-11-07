@@ -5,6 +5,14 @@ This guide covers the move from shared executable stacks to
 identity and moves managed resources into `module.stack`. It does not authorize a
 cloud apply or a change of backend storage.
 
+The shared executable stacks are the layout from `1715e72` (2026-11-04) to
+`4d2b853` (2026-11-05). Each `stacks/<cloud>/<group>/<stack>` directory then was a
+root with its own backend and providers, and one directory served every environment.
+The current `stacks/` directory reuses the name for a different layer. It holds
+provider-free, backend-free compositions that live roots call as `module "stack"`,
+and it never holds state. In this guide, "previous layout" and "shared stack" mean
+the old executable directories.
+
 ## Check the two identities
 
 A state location and an address inside that state are separate identities.
@@ -34,7 +42,7 @@ resource at the new address. Keep them committed so roots with older state can
 still upgrade. Do not remove and reimport resources merely because the code moved.
 
 `python3 tools/check_layout.py` enforces this without state or cloud access.
-`tools/legacy-addresses.json` lists the addresses each shared stack declared.
+`tools/legacy-addresses.json` lists the addresses each old shared stack declared.
 For every live root, the check follows each listed address through the `moved`
 blocks in the root and in every local module it calls. Each address must end at
 a distinct managed resource that the code still declares. A `moved` block must
@@ -68,7 +76,7 @@ Add those addresses to the inventory before you rely on the check.
 5. Preserve your existing `terraform.tfvars.json` values. The checked-in cloud values
    are examples and must not replace an adopted deployment's configuration.
 6. Review every moved address against your customized resources. Add moves for any
-   extra managed resources that you move into the composition.
+   extra managed resources that you move into the stack.
 
 For a local or bootstrap deployment, copy the existing state and any recovery
 backups to an encrypted location outside the checkout. The root's relative path
@@ -109,6 +117,18 @@ expected `module.stack` addresses, and back up state again.
 Do not restore the old configuration after applying the moves without planning
 an explicit reverse migration. Keep both the pre-migration backup and the source
 revision according to your recovery policy.
+
+## Move compositions from `modules/` to `stacks/`
+
+If you adopted native roots before the stack layer, your roots call compositions
+under `modules/<cloud>/<group>/<stack>`. Those compositions now live under
+`stacks/<cloud>/<group>/<stack>`, and each root's `module "stack"` source points there.
+Module addresses come from the `module` block name, not its source path, so no
+resource address changes and no `moved` block is needed.
+
+OpenTofu records module sources in each root's `.terraform/` directory. Run
+`tofu init` again in every root before you plan. Until you do, `tofu plan` fails with
+`Module not installed`. After `tofu init`, expect a plan with no changes.
 
 ## Update scripts and policy
 

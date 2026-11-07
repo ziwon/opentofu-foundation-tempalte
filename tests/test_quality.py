@@ -36,10 +36,10 @@ class SuppressionTests(unittest.TestCase):
         for marker in (b"#trivy:ignore:*", b"// tfsec:ignore:aws-ec2-no-public-ingress-sgr", b"# Trivy:Ignore:AVD-AWS-0107"):
             with self.subTest(marker=marker), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
-                module = root / "modules/aws/network/core"
+                module = root / "stacks/aws/network/core"
                 module.mkdir(parents=True)
                 (module / "main.tf").write_bytes(marker + b"\nresource \"aws_vpc\" \"this\" {}\n")
-                with self.assertRaisesRegex(QualityError, "modules/aws/network/core/main.tf"):
+                with self.assertRaisesRegex(QualityError, "stacks/aws/network/core/main.tf"):
                     reject_suppressions(root, None)
                 plan = root / "fixture.tfplan"
                 with zipfile.ZipFile(plan, "w") as archive:

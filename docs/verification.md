@@ -23,7 +23,7 @@ Cloud linter plugins remain AWS 0.50.0, AzureRM 0.33.0, and Google 0.41.0.
 ## Native-root acceptance criteria
 
 Each of the 30 live leaves must initialize and validate as a native root.
-Resource compositions must have no provider configuration or backend.
+Stacks and core modules must have no provider configuration or backend.
 Root locks must retain the provider identities and selections from the previous layout.
 Mock tests must cover cloud resource protections and meaningful environment inputs.
 
