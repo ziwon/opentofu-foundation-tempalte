@@ -22,7 +22,7 @@ def main():
     check(ROOT)
     run("tofu", "fmt", "-check", "-recursive")
     run("python3", "-m", "unittest", "discover", "-s", "tests", "-v")
-    cache = ROOT / ".infra/provider-cache"
+    cache = Path(os.environ.get("TF_PLUGIN_CACHE_DIR") or ROOT / ".infra/provider-cache")
     cache.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="foundation checks ") as temporary:
         temporary = Path(temporary)

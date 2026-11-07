@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The check tools use `TF_PLUGIN_CACHE_DIR` and `TFLINT_PLUGIN_DIR` when they are set,
+  so provider and plugin caches can live outside the checkout.
 - Roots no longer repeat name and CIDR validations that `modules/context` or their
   stack already applies. Invalid values still fail with the same message, now
   reported at the module call. Roots keep validations for account, subscription,
