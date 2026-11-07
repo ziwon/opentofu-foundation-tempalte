@@ -50,5 +50,6 @@ Keep fork PRs disabled for Atlantis and retain the trusted repository and author
 boundary. Atlantis runs the quality helper from the PR checkout. Require Code Owner
 review for the paths in `.github/CODEOWNERS`. Then a policy change in the reviewed
 commit needs the owning team's approval before apply. Plan-stage code can still change
-the checkout on disk. Review [Atlantis setup](docs/atlantis.md), [migration](docs/migration.md),
+the checkout on disk. The server must own the OpenTofu, Trivy, and TFLint executables
+on its `PATH`. Version-manager shims select tools from the PR checkout. Review [Atlantis setup](docs/atlantis.md), [migration](docs/migration.md),
 and [bootstrap recovery](docs/bootstrap.md) before enabling deployment credentials.

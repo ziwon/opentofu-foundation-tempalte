@@ -10,6 +10,9 @@ an Atlantis server or configure cloud identities.
 2. Install the pinned OpenTofu, Trivy, and TFLint versions from [mise.toml](../mise.toml).
 3. Expose OpenTofu as `tofu1.12.5` on the server's `PATH` for Atlantis's pinned
    version discovery. Keep `tofu`, `trivy`, and `tflint` available for verification tools.
+   Put the executables themselves on the Atlantis process's `PATH`. Do not expose mise
+   or asdf shims, and do not run `mise activate` for that process. A shim selects its
+   version from configuration in the current directory, which is the PR checkout.
 4. Provide persistent storage for Atlantis's data directory and retained PR plans.
 5. Configure least-privilege cloud and backend identities through [cloud setup](cloud-setup.md).
 
@@ -17,7 +20,7 @@ The server example sets `tf-download: false`. Install the pinned OpenTofu binary
 before starting Atlantis. Ordinary local deployment commands have no Atlantis or
 Python dependency. The server quality steps require Python and the scanner tools.
 
-Optional local installation through mise:
+Optional local installation through mise, for workstations and CI only:
 
 ```sh
 mise trust
