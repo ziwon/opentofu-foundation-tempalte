@@ -17,7 +17,7 @@ class QualityError(Exception):
 
 # Trivy drops suppressed findings from its report, so they must be rejected before scanning.
 SUPPRESSION = re.compile(rb"(?i)(?:trivy|tfsec):ignore")
-CONFIGURATION = (".tf", ".tf.json")
+CONFIGURATION = (".tf", ".tf.json", ".tofu", ".tofu.json")
 
 
 def execute(arguments, root: Path, *, env=None, capture=False):

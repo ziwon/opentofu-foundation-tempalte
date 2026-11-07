@@ -63,8 +63,8 @@ def configuration(root: Path, names=(), autoplan=False) -> dict:
             "autoplan": {
                 "enabled": autoplan,
                 "when_modified": [
-                    "*.tf", "*.tf.json", "*.tfvars.json", ".terraform.lock.hcl",
-                    *(f"{repository}/{module}/**/*.tf" for module in modules),
+                    "*.tf", "*.tofu", "*.tf.json", "*.tofu.json", "*.tfvars.json", ".terraform.lock.hcl",
+                    *(f"{repository}/{module}/**/*.{extension}" for module in modules for extension in ("tf", "tofu")),
                     f"{repository}/tools/quality.py", f"{repository}/mise.toml",
                     f"{repository}/.tflint.hcl", f"{repository}/atlantis.yaml",
                 ],
