@@ -84,8 +84,8 @@ permissions:
 
 The additions read more than metadata. `lambda:GetFunction*` returns function code
 locations and environment variables, `ecr:BatchGetImage` and
-`ecr:GetDownloadUrlForLayer` read image layers, and `logs:FilterLogEvents` reads log
-contents. Prowler uses them to look for secrets. Give the role to the scan job only,
+`ecr:GetDownloadUrlForLayer` read image layers, `logs:FilterLogEvents` reads log
+contents, and `glue:GetConnections` can return Glue connection passwords in plain text. Prowler uses them to look for secrets. Give the role to the scan job only,
 never to a deployment job.
 
 ## Create the security-audit environment
