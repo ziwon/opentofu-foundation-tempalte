@@ -55,6 +55,14 @@
   for dev, stage, and prod, plus a cloud-free local catalog.
 - Native-root migration, operating, security, and contribution guides in addition
   to English and Korean getting-started documentation.
+- AWS stacks call the core modules `modules/aws/kms-key`, `modules/aws/s3-bucket`,
+  and `modules/aws/vpc`. The bootstrap and storage stacks no longer duplicate the
+  bucket and key, and the S3 module owns the `<name>-<account id>` naming rule. A
+  plan fails when that name exceeds 63 characters. Resources moved from
+  `module.stack.<address>` to `module.stack.module.<key|bucket|vpc>.<address>`, and
+  both KMS keys are now `aws_kms_key.this`. Stack `moved` blocks continue the roots'
+  moves, so state at either earlier address plans only moves. The workload storage
+  bucket gains `prevent_destroy`. Run `tofu init` again in existing AWS working directories.
 - Azure storage accounts and their containers moved into the core module
   `modules/azure/storage-account`, which `stacks/azure/bootstrap/state` and
   `stacks/azure/storage/bucket` call as `module "storage_account"`. The Azure virtual

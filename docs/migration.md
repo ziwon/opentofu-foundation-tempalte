@@ -158,6 +158,28 @@ requires these no-op moves with unchanged IDs and outputs. Run `tofu init` again
 before you plan, since the stack now calls a new module. After you apply, `tofu state
 list` shows the nested address.
 
+### AWS
+
+The AWS stacks call `modules/aws/kms-key` as `module "key"`, `modules/aws/s3-bucket`
+as `module "bucket"`, and `modules/aws/vpc` as `module "vpc"`. Each stack's
+`migrations.tf` moves every resource it held:
+
+| Stack | Native-root address | Current address |
+| --- | --- | --- |
+| `aws/bootstrap/state` | `module.stack.aws_kms_key.state` | `module.stack.module.key.aws_kms_key.this` |
+| `aws/storage/bucket` | `module.stack.aws_kms_key.storage` | `module.stack.module.key.aws_kms_key.this` |
+| `aws/bootstrap/state`, `aws/storage/bucket` | `module.stack.aws_s3_bucket.this` | `module.stack.module.bucket.aws_s3_bucket.this` |
+| `aws/bootstrap/state`, `aws/storage/bucket` | `module.stack.aws_s3_bucket_<setting>.this` for `public_access_block`, `ownership_controls`, `versioning`, and `server_side_encryption_configuration` | `module.stack.module.bucket.aws_s3_bucket_<setting>.this` |
+| `aws/bootstrap/state`, `aws/storage/bucket` | `module.stack.aws_s3_bucket_policy.tls` | `module.stack.module.bucket.aws_s3_bucket_policy.tls` |
+| `aws/network/core` | `module.stack.aws_vpc.this`, `module.stack.aws_subnet.private`, `module.stack.aws_default_security_group.this` | The same resource under `module.stack.module.vpc.` |
+
+State at the shared-stack address, such as `aws_kms_key.state`, follows the root's
+move and then the stack's move. Every resource argument is unchanged, so after
+`tofu init` the plan reports only moves, with no add, change, or destroy. Stop if it
+shows any other action. Without cloud access, `python3 tools/check_layout.py` proves
+that every shared-stack address reaches its resource. The workload storage bucket
+now has `prevent_destroy`, as the bootstrap bucket already did, so a plan that
+destroys either bucket or key fails.
 ### Azure
 
 The Azure storage stacks call `modules/azure/storage-account` as `module "storage_account"`,

@@ -28,6 +28,9 @@ The stack declares `context` as `object({ id = string, tags = map(string) })`.
 Its resources use `var.context.id` and `var.context.tags`. Cloud-specific name
 transformations stay with those resources.
 
+AWS S3 bucket names are the ID plus the account ID. `modules/aws/s3-bucket` builds
+the name, and a plan fails if it exceeds 63 characters.
+
 Azure storage account names allow 24 lowercase letters and digits. The core module
 `modules/azure/storage-account` receives the ID as `name_base`. It removes hyphens
 and keeps the first 18 characters. If the ID fits, the suffix is 6 characters of
@@ -48,12 +51,13 @@ provider "aws" {
 }
 ```
 
-The network stack keeps the resource-specific `Name` tag separate:
+The VPC core module keeps the resource-specific `Name` tag separate. The network
+stack passes `var.context.id` as `name`:
 
 ```hcl
 resource "aws_vpc" "this" {
   cidr_block = var.network_cidr
-  tags       = { Name = var.context.id }
+  tags       = { Name = var.name }
 }
 ```
 
