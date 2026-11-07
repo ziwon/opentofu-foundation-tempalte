@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `.github/CODEOWNERS` assigns the quality helper, tool pins, lint rules, CI, and
+  Atlantis configuration to a policy team. With Code Owner review required, a PR
+  that changes this policy cannot reach Atlantis apply without that team's approval.
 - Security scans reject inline `trivy:ignore` and `tfsec:ignore` comments in source
   and saved-plan configuration. Trivy otherwise drops suppressed findings silently.
 - Azure storage account names that exceed 18 characters after hyphen removal now

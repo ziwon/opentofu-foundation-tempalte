@@ -47,5 +47,6 @@ apply. Native local use can bypass these checks. See [quality checks](docs/quali
 Gitleaks checks secrets independently of infrastructure policy.
 
 Keep fork PRs disabled for Atlantis and retain the trusted repository and author
-boundary. Review [Atlantis setup](docs/atlantis.md), [migration](docs/migration.md),
+boundary. Atlantis runs the quality helper from the PR checkout. Require Code Owner
+review for the paths in `.github/CODEOWNERS` so a PR cannot approve its own policy change. Review [Atlantis setup](docs/atlantis.md), [migration](docs/migration.md),
 and [bootstrap recovery](docs/bootstrap.md) before enabling deployment credentials.

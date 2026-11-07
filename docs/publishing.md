@@ -12,6 +12,7 @@ Prepare the checkout locally before creating a public repository.
    **Template repository** setting if users should generate independent copies.
 5. Enable private vulnerability reporting and branch protection. Require the
    OpenTofu checks and secret scan. Disable force pushes to the default branch.
+   Replace the team in `.github/CODEOWNERS` and require Code Owner review.
 6. Run hosted CI and review its results before tagging a release. A checked-in
    workflow is not evidence that a hosted run passed.
 

@@ -39,6 +39,7 @@ before changing its pin.
 5. Keep the `foundation` workflow and its `approved`, `mergeable`, and `undiverged` apply requirements.
 6. Configure the VCS identity and webhook secret through your secret manager.
 7. Configure HTTPS, authenticated web access, branch protection, and required CI checks.
+   Replace the team in [CODEOWNERS](../.github/CODEOWNERS) and require Code Owner review.
 8. Dismiss stale approvals on new commits and keep `checkout-strategy: merge`.
 
 ```sh
@@ -48,7 +49,12 @@ atlantis server --config /etc/atlantis/server.yaml
 Keep `allow-fork-prs: false`. Restrict command authors with VCS permissions and
 Atlantis team allowlists. Server-owned workflow definitions still execute reviewed
 repository code, providers, and the quality helper. Apply approval alone does not
-make an untrusted plan safe. See [Atlantis security](https://www.runatlantis.io/docs/security.html).
+make an untrusted plan safe.
+
+The quality helper, its tool pins, and its lint rules come from the PR checkout.
+A PR can change the policy that checks it. The plan stage runs that changed policy.
+Code Owner review closes the apply stage. GitHub does not report the PR as mergeable
+until the owning team approves, so the `mergeable` requirement blocks apply. See [Atlantis security](https://www.runatlantis.io/docs/security.html).
 
 ## Activate selected deployments
 
