@@ -80,7 +80,7 @@ class MisreadTests(unittest.TestCase):
         cases = {
             "block-commented move": ('module "stack" {\n  source = "./stack"\n}\n/*\n' + ROOT_MOVE.split("}\n", 1)[1] + "*/\n", resource),
             "line-commented move": ('module "stack" {\n  source = "./stack"\n}\n' + "".join("# " + line + "\n" for line in ROOT_MOVE.split("}\n", 1)[1].splitlines()), resource),
-            "heredoc hides a move": ('module "stack" {\n  source = "./stack"\n}\nlocals {\n  doc = <<EOT\n' + ROOT_MOVE.split("}\n", 1)[1] + "EOT\n}\n", resource),
+            "heredoc": ('module "stack" {\n  source = "./stack"\n}\nlocals {\n  doc = <<EOT\n' + ROOT_MOVE.split("}\n", 1)[1] + "EOT\n}\n", resource),
             "count after a brace in a string": (ROOT_MOVE, 'resource "terraform_data" "x" {\n  input = "}"\n  count = 1\n}\n'),
             "count after a brace in a comment": (ROOT_MOVE, 'resource "terraform_data" "x" {\n  input = "v" # }\n  count = 0\n}\n'),
             "for_each with an inline map": (ROOT_MOVE, 'resource "terraform_data" "x" {\n  input    = "v"\n  for_each = { a = 1 }\n}\n'),
@@ -103,3 +103,48 @@ class MisreadTests(unittest.TestCase):
         root_text = ROOT_MOVE.replace("to   = module.stack.terraform_data.x", "to   = module.stack.terraform_data.x # moved in 2026 }")
         stack_text = 'resource "terraform_data" "x" {\n  input = "${jsonencode({ a = "}" })} /* not a comment */"\n}\n'
         self.trace(root_text, stack_text)
+
+
+class SubsetTests(unittest.TestCase):
+    """Constructs outside the traced subset fail closed; OpenTofu reads each one differently."""
+
+    def trace(self, files):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, content in files.items():
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_bytes(content.encode())
+            verify_continuity(["terraform_data.x"], *managed_addresses(root))
+
+    def test_unsupported_constructs_are_rejected(self):
+        keyed = 'resource "terraform_data" "x" {\n  input    = "%s"\n  for_each = toset(["k"])\n}\n'
+        cases = {
+            "escaped interpolation": keyed % "$${",
+            "template directive": keyed % '%{ if "}" == "}" }a%{ endif }',
+            "heredoc": 'resource "terraform_data" "x" {\n  input = <<EOT\nv\nEOT\n}\n',
+            "carriage return": '# note\rresource "terraform_data" "y" {}\nresource "terraform_data" "x" {}\n',
+            "vertical tab": 'resource "terraform_data" "x" {\n\v}\n',
+            "no-break space": 'resource "terraform_data" "x" {\n }\n',
+        }
+        for case, content in cases.items():
+            with self.subTest(case), self.assertRaisesRegex(ValueError, "Cannot trace"):
+                self.trace({"main.tf": content})
+
+    def test_override_files_and_interpolated_sources_are_rejected(self):
+        resource = 'resource "terraform_data" "x" {}\n'
+        cases = {
+            "override file": {"main.tf": resource, "main_override.tf": resource},
+            "bare override file": {"main.tf": resource, "override.tf": resource},
+            "interpolated source": {
+                "main.tf": 'variable "s" {\n  default = "b"\n}\nmodule "m" {\n  source = "./a${var.s}"\n}\n',
+                "a/main.tf": resource,
+            },
+        }
+        for case, files in cases.items():
+            with self.subTest(case), self.assertRaisesRegex(ValueError, "Cannot trace"):
+                self.trace(files)
+
+    def test_hidden_files_are_ignored_like_opentofu(self):
+        moved = 'moved {\n  from = terraform_data.x\n  to   = terraform_data.y\n}\n'
+        with self.assertRaisesRegex(ValueError, "Legacy address"):
+            self.trace({"main.tf": 'resource "terraform_data" "y" {}\n', ".moves.tf": moved})
