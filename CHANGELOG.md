@@ -37,3 +37,7 @@ First release of the template.
   `integrations/infracost/mise.toml` pins the CLI, and no check or CI job uses it.
 - English and Korean getting-started guides, plus architecture, cloud setup,
   bootstrap, operations, quality, Atlantis, security, and contribution guides.
+- `just preflight <deployment>` runs `tools/preflight.py`, a read-only check that the
+  active `aws`, `az`, or `gcloud` identity matches the root's account, subscription,
+  project, and AWS region. It fails on committed placeholders, a missing CLI, or a
+  missing login. The `plan` and `apply` recipes do not run it.
