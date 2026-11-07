@@ -36,6 +36,8 @@ updates:
       - /live/stage/gcp/bootstrap/state
       - /live/stage/gcp/network/core
       - /live/stage/gcp/storage/bucket
+      - /modules/gcp/network
+      - /modules/gcp/storage-bucket
       - /stacks/aws/bootstrap/state
       - /stacks/aws/network/core
       - /stacks/aws/storage/bucket
