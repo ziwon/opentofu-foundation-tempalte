@@ -1,84 +1,94 @@
-# OpenTofu foundation template
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="OpenTofu foundation template: every deployment is its own OpenTofu root. The address dev/aws/storage/bucket maps to a live root, a stack, and core modules.">
+</p>
 
-An infrastructure monorepo template for AWS, Azure, and GCP. Each deployment is
-an executable OpenTofu root with its own backend, inputs, providers, and lock file.
-Run native `tofu` commands from that directory. Ordinary deployment operations do
-not require Python, a generator, or a repository runner.
+<p align="center">
+  <a href="README.ko.md">한국어</a> ·
+  <a href="docs/architecture.md">Architecture</a> ·
+  <a href="docs/cloud-setup.md">Cloud setup</a> ·
+  <a href="docs/operations.md">Operations</a> ·
+  <a href="docs/quality.md">Quality checks</a> ·
+  <a href="docs/atlantis.md">Atlantis</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
 
-[한국어 안내](README.ko.md) · [Architecture](docs/architecture.md) ·
-[Cloud setup](docs/cloud-setup.md) · [Operations](docs/operations.md) ·
-[Bootstrap](docs/bootstrap.md) · [Names and tags](docs/context.md) ·
-[Quality checks](docs/quality.md) · [Atlantis](docs/atlantis.md) · [Contributing](CONTRIBUTING.md)
+An OpenTofu monorepo template for AWS, Azure, and GCP. Each deployment is one
+directory with its own backend, providers, inputs, and lock file, and you run it with
+plain `tofu`. Deployments need no Python, generator, or repository runner.
 
-## Deployment model
+## Try it without a cloud account
 
-```text
-live/dev/aws/network/core/       executable deployment root
-  backend.tf                    explicit state location
-  context.tf                    shared name and tags
-  main.tf                       module "stack" call
-  providers.tf                  account and provider configuration
-  versions.tf                   OpenTofu and provider requirements
-  .terraform.lock.hcl           provider selections
-  variables.tf                  root inputs
-  terraform.tfvars.json         non-secret deployment values
-  outputs.tf                    deployment outputs
-stacks/aws/network/core/        purpose-specific composition the root calls
-modules/context/                name and tag convention
-modules/<cloud>/<module>/       reusable core building blocks
-```
-
-A deployment is `environment/cloud/group/stack`. The 33 supplied roots cover AWS,
-Azure, and GCP network, storage, and state bootstrap examples, AWS GitHub Actions
-OIDC roles, and a local catalog, in dev, stage, and prod. Each leaf runs independently and uses the default workspace.
-
-The repository has three layers. A `live/` root owns state, providers, and inputs,
-and calls exactly one stack as `module "stack"`. A stack under
-`stacks/<cloud>/<group>/<stack>` composes resources for one purpose and may call core
-modules from `modules/`. Core modules hold reusable building blocks and the shared
-`modules/context` convention. Stacks and modules have no backend or provider configuration.
-
-## Quick start without a cloud account
-
-Install OpenTofu 1.12.5. Review [mise.toml](mise.toml) if you use
-[mise](https://mise.jdx.dev/) to install the pinned development tools.
-Python and the quality tools are optional for this local lifecycle.
+Install OpenTofu 1.12.5, or run `mise install` to get every pinned tool from
+[mise.toml](mise.toml). The local catalog uses only the built-in `terraform_data`
+resource, so it creates local state and no cloud resources.
 
 ```sh
 cd live/dev/local/foundation/catalog
 tofu init -lockfile=readonly
 tofu plan -out=plan.tfplan
 tofu apply plan.tfplan
-tofu output
 tofu state list
 ```
 
-The catalog uses only the built-in `terraform_data` resource. Applying the saved
-plan creates local state and no cloud resources. Its name is `starter-catalog-dev`.
-The backend stores state at repository-relative
-`.infra/state/dev/local/foundation/catalog/terraform.tfstate`.
-A saved-plan apply does not ask for confirmation. Review the plan before running it.
-
-To remove the local catalog, review and apply a destroy plan:
-
-```sh
-tofu plan -destroy -out=destroy.tfplan
-tofu apply destroy.tfplan
+```text
+Plan: 1 to add, 0 to change, 0 to destroy.
+deployment_name = "starter-catalog-dev"
+module.stack.module.catalog.terraform_data.catalog
 ```
 
-From the repository root, `just init dev/local/foundation/catalog`, `just plan dev/local/foundation/catalog`, and `just apply dev/local/foundation/catalog` are
-optional aliases for native commands. Use `just --list` for the available recipes.
+State lands in `.infra/state/dev/local/foundation/catalog/terraform.tfstate`. A saved
+plan applies without a prompt, so review it first. Remove the catalog with
+`tofu plan -destroy -out=destroy.tfplan` and `tofu apply destroy.tfplan`.
+
+## What you get
+
+33 deployment roots for dev, stage, and prod.
+
+| Cloud | Network | Storage | Remote state |
+| --- | --- | --- | --- |
+| AWS | VPC, private subnet, default-deny security group | Private, encrypted, versioned S3 bucket | S3 with lock files |
+| Azure | VNet, subnet, network security group | Private containers, versioning, identity-based access | Azure Blob with leases |
+| GCP | Custom VPC, subnet, ingress firewall | Private, versioned bucket with uniform access | GCS with locking |
+| Local | Built-in catalog | Local state only | Local file |
+
+- Each cloud has a state bootstrap root that creates its own backend storage, with
+  deletion protection. See [bootstrap](docs/bootstrap.md).
+- AWS has GitHub Actions OIDC roles, so workflows assume short-lived roles instead
+  of storing keys. See [cloud setup](docs/cloud-setup.md#let-github-actions-assume-an-aws-role).
+- The examples create no compute, NAT gateways, or public IPs. Storage, requests,
+  keys, versions, and logs can still incur charges.
+
+## How it fits together
+
+<p align="center">
+  <img src="./assets/readme/layers.svg" width="100%" alt="The dev, stage, and prod roots each own their state, lock, and inputs, and all call the same stack, which composes the kms-key and s3-bucket core modules.">
+</p>
+
+A deployment address is `environment/cloud/group/stack`, such as
+`dev/aws/storage/bucket`. The address names three layers:
+
+- **`live/<address>`** is the root you run. It owns the backend, providers, inputs,
+  and lock file, and calls one stack as `module "stack"`.
+- **`stacks/<cloud>/<group>/<stack>`** composes resources for one purpose. Every
+  environment calls the same stack.
+- **`modules/<cloud>/<name>`** holds reusable building blocks, such as `kms-key` and
+  `s3-bucket`. `modules/context` builds the `<namespace>-<name>-<environment>` ID
+  and tags that every root uses.
+
+Stacks and modules configure no providers or backends. Each root keeps an explicit
+state key that matches its address. See [architecture](docs/architecture.md),
+[names and tags](docs/context.md), and [adding deployments](docs/adding-stacks.md).
 
 ## Start a cloud deployment
 
-1. Select a root under `live/<environment>/<cloud>/<group>/<stack>`.
+1. Pick a root under `live/<environment>/<cloud>/<group>/<stack>`.
 2. Set its account, subscription, or project, region, and names in `terraform.tfvars.json`.
-3. Create state storage through [bootstrap](docs/bootstrap.md), or use storage you already manage.
-4. Replace the storage placeholders in `backend.tf`. Preserve its explicit key or prefix.
-5. Authenticate through your cloud's supported identity mechanism, following [cloud setup](docs/cloud-setup.md).
-6. Run `just preflight dev/aws/network/core` to confirm that your login matches the root.
-   The preflight is read-only and optional. Native `tofu` commands do not need it.
-7. Run the checks, initialize the backend, review a saved plan, and apply it through your approved deployment process.
+3. Create state storage with [bootstrap](docs/bootstrap.md), or use storage you already manage.
+4. Replace the storage placeholders in `backend.tf`. Keep its explicit key or prefix.
+5. Log in through your cloud's identity mechanism. See [cloud setup](docs/cloud-setup.md).
+6. Optionally run `just preflight dev/aws/network/core`. It checks that your login
+   matches the root and changes nothing.
+7. Review a saved plan, then apply it through your approved process.
 
 ```sh
 tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
@@ -86,45 +96,16 @@ tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
 tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 ```
 
-| Cloud | Network example | Storage example | Workload backend |
-| --- | --- | --- | --- |
-| AWS | VPC, private subnet, default-deny security group | Private, encrypted, versioned S3 bucket | S3 with lock files |
-| Azure | VNet, subnet, network security group | Private containers, versioning, identity-based access | Azure Blob with leases |
-| GCP | Custom VPC, subnet, ingress firewall | Private, versioned bucket with uniform access | GCS with locking |
-| Local | Built-in catalog | Local state only | Local file |
+`just init`, `just plan`, and `just apply` are optional aliases for the same native
+commands. Run `just --list` for every recipe.
 
-The AWS `identity/github-actions-oidc` roots create IAM roles that GitHub Actions
-jobs assume through OIDC instead of stored access keys. See
-[cloud setup](docs/cloud-setup.md#let-github-actions-assume-an-aws-role).
+## Checks
 
-The examples create no compute workloads, NAT gateways, or public IPs. Storage,
-requests, keys, versions, and network logging can incur charges. Review identity,
-monitoring, retention, private connectivity, and recovery requirements before production.
+<p align="center">
+  <img src="./assets/readme/gates.svg" width="100%" alt="Every pull request runs format and layout checks, validation with mocked plans, TFLint, a Trivy source scan, and a local smoke test. The optional Atlantis workflow plans, scans the saved plan, requires Code Owner approval, and applies the same plan.">
+</p>
 
-## Names, tags, and reuse
-
-Each root calls `modules/context` in `context.tf`. Its `module.context.id` is
-`<namespace>-<name>-<environment>`. Its `module.context.tags` combines standard
-metadata with optional `tags` from the live inputs. The keys `project`,
-`environment`, and `managed_by` are reserved.
-
-The root passes these outputs to its stack through a typed `context`
-object with `id` and `tags`. The stack composes resources, and the core modules
-it calls own cloud-specific name rules. Providers remain in the root. See [names and tags](docs/context.md)
-and [adding deployments](docs/adding-stacks.md).
-
-## State
-
-State identity is explicit in each root's `backend.tf`. Local and bootstrap state
-live under `.infra/state/<deployment>/terraform.tfstate`. Remote workloads use
-`<deployment>/terraform.tfstate` keys for S3 and Azure, or `<deployment>` prefixes
-for GCS. Deleting `.infra/` deletes local and bootstrap state, so back it up first.
-
-## Verification and CI
-
-Python 3.10 or later is a development dependency for repository checks, report
-validation, and fixture tests. It is not part of native deployment execution.
-Install the pinned quality tools before running:
+Run the same checks locally with Python 3.10 or later and the tools from `mise.toml`:
 
 ```sh
 python3 tools/check.py
@@ -133,23 +114,32 @@ python3 tools/quality_smoke.py
 gitleaks dir . --redact --no-banner
 ```
 
-The [CI workflow](.github/workflows/check.yml) supports OpenTofu only. It checks
-formatting, layout, provider validation, lint, source security, mocked cloud plans,
-and local lifecycle behavior. The real scanner fixtures test rejection as well as
-acceptance. Cloud tests are plan-only and use mocks or isolated fake credentials.
-Actual fixture applies and destroys use local `terraform_data` resources.
-See [verification scope](docs/verification.md) for commands and limits.
+[CI](.github/workflows/check.yml) also runs Gitleaks on the full history. Cloud tests
+are plan-only and use mocks or fake credentials. Native local commands run no scans or
+approvals. Trusted automation must run the source and saved-plan scans and require
+approval. Trivy checks configuration, not what an IAM role may do, so review role
+permissions in the pull request. See [quality checks](docs/quality.md) and
+[verification](docs/verification.md).
 
-Native local commands run no approval prompts or automatic scans. Trusted
-deployment automation must run the source and saved-plan security checks, require
-approvals, and restrict untrusted code.
-The optional [Atlantis integration](docs/atlantis.md) uses built-in `init`, `plan`,
-and `apply` with explicit quality steps and server-owned approval requirements.
+## Optional integrations
 
-State, plans, provider metadata, and reports can contain secrets. Keep generated
-artifacts out of Git and public logs. Read [security](SECURITY.md) and the
-[publication checklist](docs/publishing.md) before enabling deployments or publishing a fork.
+None of these is required. Ordinary `tofu` commands work without them.
+
+| Integration | What it adds | Status |
+| --- | --- | --- |
+| [Atlantis](docs/atlantis.md) | Pull request plans and applies with source and saved-plan scans and Code Owner approval | Server config tested locally |
+| [GitHub Actions OIDC](docs/cloud-setup.md#let-github-actions-assume-an-aws-role) | AWS roles that trust exact repository, branch, or environment claims | Not yet run against a live account |
+| [Prowler](integrations/prowler/README.md) | Opt-in read-only audit role and a scheduled account scan workflow | Not yet run against a live account |
+| [Infracost](integrations/infracost/README.md) | `just cost <deployment>` prices a saved plan | Needs an API key; not run here |
+| [Preflight](docs/operations.md) | `just preflight <deployment>` compares your cloud login with a root | Tested with fake CLIs |
+
+## Security and state
+
+State, saved plans, provider metadata, and reports can contain secrets. Keep them out
+of Git and public logs. Local and bootstrap state live under `.infra/state/`, so
+deleting `.infra/` deletes that state. Read [security](SECURITY.md) and the
+[publication checklist](docs/publishing.md) before you enable deployments or publish a fork.
 
 ## License
 
-[MIT](LICENSE). Installed providers and tools retain their own licenses.
+[MIT](LICENSE). Installed providers and tools keep their own licenses.

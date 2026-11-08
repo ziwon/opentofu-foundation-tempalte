@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" role="img" aria-labelledby="title desc">
+  <title id="title">OpenTofu foundation template</title>
+  <desc id="desc">A multi-cloud OpenTofu monorepo template. The deployment address dev, aws, storage, bucket resolves to a live root that owns state and providers, a stack that composes resources for one purpose, and reusable core modules.</desc>
+
+  <rect width="1200" height="440" rx="24" fill="#F7F5EF"/>
+  <rect x="1" y="1" width="1198" height="438" rx="23" fill="none" stroke="#D9D5CA" stroke-width="2"/>
+
+  <g id="title-block" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" fill="#15171A">
+    <text x="64" y="82" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" letter-spacing="2" fill="#5F646B">OPENTOFU MONOREPO TEMPLATE</text>
+    <text x="64" y="150" font-size="56" font-weight="700">OpenTofu</text>
+    <text x="64" y="212" font-size="56" font-weight="700">foundation template</text>
+    <text x="64" y="270" font-size="24">Every deployment is its own OpenTofu root.</text>
+    <text x="64" y="306" font-size="24">Run plain tofu. No runner, no generator.</text>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#5F646B">
+      <text x="64" y="378">AWS · Azure · GCP · local</text>
+      <text x="64" y="404">33 roots · dev / stage / prod</text>
+    </g>
+  </g>
+
+  <g id="project-proof" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" fill="#15171A">
+    <g id="address" transform="translate(700 70)">
+      <g font-size="26" font-weight="700">
+        <text x="0" y="24">dev</text>
+        <text x="122" y="24">aws</text>
+        <text x="208" y="24">storage</text>
+        <text x="352" y="24">bucket</text>
+      </g>
+      <g font-size="26" fill="#B9B4A6" text-anchor="middle">
+        <text x="85" y="24">/</text>
+        <text x="189" y="24">/</text>
+        <text x="335" y="24">/</text>
+      </g>
+      <g font-size="17" fill="#5F646B">
+        <text x="0" y="54">environment</text>
+        <text x="122" y="54">cloud</text>
+        <text x="208" y="54">group</text>
+        <text x="352" y="54">stack</text>
+      </g>
+    </g>
+
+    <g id="layers" transform="translate(700 150)" font-size="20">
+      <rect x="0" y="0" width="448" height="56" rx="14" fill="#FFFFFF" stroke="#15171A" stroke-width="2"/>
+      <text x="18" y="35">live/dev/aws/storage/bucket</text>
+
+      <path d="M36 56 V88" stroke="#15171A" stroke-width="2"/>
+      <text x="52" y="78" font-size="15" fill="#5F646B">root: state, providers → module "stack"</text>
+
+      <rect x="0" y="88" width="448" height="56" rx="14" fill="#FFDA18" stroke="#15171A" stroke-width="2"/>
+      <text x="18" y="123">stacks/aws/storage/bucket</text>
+
+      <path d="M36 144 V176 M36 160 H260 V176" stroke="#15171A" stroke-width="2" fill="none"/>
+
+      <rect x="0" y="176" width="212" height="66" rx="14" fill="#FFFFFF" stroke="#15171A" stroke-width="2"/>
+      <text x="18" y="203" font-size="15" fill="#5F646B">modules/aws/</text>
+      <text x="18" y="229">kms-key</text>
+      <rect x="236" y="176" width="212" height="66" rx="14" fill="#FFFFFF" stroke="#15171A" stroke-width="2"/>
+      <text x="254" y="203" font-size="15" fill="#5F646B">modules/aws/</text>
+      <text x="254" y="229">s3-bucket</text>
+    </g>
+  </g>
+</svg>
