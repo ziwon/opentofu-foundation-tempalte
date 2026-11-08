@@ -110,8 +110,38 @@ tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
 tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 ```
 
-`just init`, `just plan`, `just apply`는 같은 기본 명령의 선택적 별칭입니다. 전체
-레시피는 `just --list`로 볼 수 있습니다.
+### 컨텍스트와 함께 just 쓰기
+
+컨텍스트 파일은 환경, 클라우드, 그리고 `AWS_PROFILE` 같은 CLI 자격 증명을 고릅니다.
+그러면 루트 레시피는 `<group> <stack>`만 받고, 무엇을 건드릴지 출력하고, 로그인을
+확인한 뒤 `tofu`를 실행합니다.
+
+```sh
+cp .env.aws.dev.example .env.aws.dev   # AWS_PROFILE을 설정합니다
+just use aws.dev
+just init network core
+just plan network core
+just apply network core
+```
+
+```text
+Context
+  Env file    : .env.aws.dev
+  Environment : dev
+  Cloud       : aws
+  Credentials : AWS_PROFILE=sandbox, AWS_REGION=us-east-1
+  OpenTofu    : OpenTofu v1.12.5
+  Stack       : stacks/aws/network/core
+  Root        : live/dev/aws/network/core
+  Backend     : s3 (bucket example-tfstate, region us-east-1)
+  State       : dev/aws/network/core/terraform.tfstate
+  TF data dir : live/dev/aws/network/core/.terraform
+  Identity    : matches AWS account 111111111111, AWS region us-east-1 as arn:aws:iam::111111111111:user/operator
+```
+
+계정, 리전, 상태 버킷은 여전히 컨텍스트가 아니라 루트의 파일에서 옵니다. 레시피는
+`dev/aws/network/core` 같은 전체 경로도 받습니다. 전체 레시피는 `just --list`로 볼 수
+있고, 자세한 내용은 [운영](docs/operations.md#select-a-context)을 참고하세요.
 
 ## 검사
 
@@ -143,8 +173,8 @@ PR에서 직접 검토하세요. [품질 검사](docs/quality.md)와 [검증 범
 | [Atlantis](docs/atlantis.md) | 소스와 저장된 plan 스캔, Code Owner 승인을 거치는 PR plan과 apply | 서버 설정을 로컬에서 검증함 |
 | [GitHub Actions OIDC](docs/cloud-setup.md#let-github-actions-assume-an-aws-role) | 정확한 저장소, 브랜치, 환경 claim만 신뢰하는 AWS role | 실제 계정에서 아직 실행하지 않음 |
 | [Prowler](integrations/prowler/README.md) | 선택형 읽기 전용 감사 role과 정기 계정 스캔 workflow | 실제 계정에서 아직 실행하지 않음 |
-| [Infracost](integrations/infracost/README.md) | 저장된 plan의 비용을 계산하는 `just cost <deployment>` | API 키가 필요하며 여기서는 실행하지 않음 |
-| [Preflight](docs/operations.md) | 클라우드 로그인과 루트를 비교하는 `just preflight <deployment>` | 가짜 CLI로 검증함 |
+| [Infracost](integrations/infracost/README.md) | 저장된 plan의 비용을 계산하는 `just cost <group> <stack>` | API 키가 필요하며 여기서는 실행하지 않음 |
+| [Preflight](docs/operations.md) | 클라우드 로그인과 루트를 비교하는 `just preflight <group> <stack>` | 가짜 CLI로 검증함 |
 
 ## 보안과 상태
 

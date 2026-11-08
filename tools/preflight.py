@@ -40,19 +40,21 @@ def aws():
     identity = json.loads(cli("aws", "sts", "get-caller-identity", "--output", "json", login="aws sso login"))
     region = (os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
               or cli("aws", "configure", "get", "region"))
-    return {"AWS account": identity["Account"], "AWS region": region}
+    return {"AWS account": identity["Account"], "AWS region": region, "caller": identity["Arn"]}
 
 
 def azure():
     account = json.loads(cli("az", "account", "show", "--output", "json", login="az login"))
-    return {"Azure subscription": account["id"]}
+    return {"Azure subscription": account["id"], "caller": account["user"]["name"]}
 
 
 def gcp():
     accounts = json.loads(cli("gcloud", "auth", "list", "--format=json", login="gcloud auth login"))
-    if not any(account["status"] == "ACTIVE" for account in accounts):
+    active = [account["account"] for account in accounts if account["status"] == "ACTIVE"]
+    if not active:
         raise PreflightError("gcloud has no active account. Log in, for example with `gcloud auth login`")
-    return {"GCP project": cli("gcloud", "config", "get-value", "project", login="gcloud auth login")}
+    return {"GCP project": cli("gcloud", "config", "get-value", "project", login="gcloud auth login"),
+            "caller": active[0]}
 
 
 ACTIVE = {"aws": aws, "azure": azure, "gcp": gcp}
@@ -114,7 +116,8 @@ def preflight(deployment):
                   for label, value in expected.items() if active[label] != value]
     if mismatches:
         return mismatches, False
-    return [f"{deployment}: matches " + ", ".join(f"{label} {value}" for label, value in expected.items())], True
+    matches = ", ".join(f"{label} {value}" for label, value in expected.items())
+    return [f"{deployment}: matches {matches} as {active['caller']}"], True
 
 
 def main(arguments):

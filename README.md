@@ -111,8 +111,38 @@ tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
 tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 ```
 
-`just init`, `just plan`, and `just apply` are optional aliases for the same native
-commands. Run `just --list` for every recipe.
+### Or use just with a context
+
+A context file picks the environment, the cloud, and the CLI credentials, such as
+`AWS_PROFILE`. Root recipes then take `<group> <stack>`, print what they will touch,
+and check your login before they run `tofu`:
+
+```sh
+cp .env.aws.dev.example .env.aws.dev   # set AWS_PROFILE
+just use aws.dev
+just init network core
+just plan network core
+just apply network core
+```
+
+```text
+Context
+  Env file    : .env.aws.dev
+  Environment : dev
+  Cloud       : aws
+  Credentials : AWS_PROFILE=sandbox, AWS_REGION=us-east-1
+  OpenTofu    : OpenTofu v1.12.5
+  Stack       : stacks/aws/network/core
+  Root        : live/dev/aws/network/core
+  Backend     : s3 (bucket example-tfstate, region us-east-1)
+  State       : dev/aws/network/core/terraform.tfstate
+  TF data dir : live/dev/aws/network/core/.terraform
+  Identity    : matches AWS account 111111111111, AWS region us-east-1 as arn:aws:iam::111111111111:user/operator
+```
+
+The account, region, and state bucket still come from the root's files, not the
+context. Recipes also accept the full `dev/aws/network/core` path. Run `just --list`
+for every recipe, and see [operations](docs/operations.md#select-a-context).
 
 ## Checks
 
@@ -145,8 +175,8 @@ None of these is required. Ordinary `tofu` commands work without them.
 | [Atlantis](docs/atlantis.md) | Pull request plans and applies with source and saved-plan scans and Code Owner approval | Server config tested locally |
 | [GitHub Actions OIDC](docs/cloud-setup.md#let-github-actions-assume-an-aws-role) | AWS roles that trust exact repository, branch, or environment claims | Not yet run against a live account |
 | [Prowler](integrations/prowler/README.md) | Opt-in read-only audit role and a scheduled account scan workflow | Not yet run against a live account |
-| [Infracost](integrations/infracost/README.md) | `just cost <deployment>` prices a saved plan | Needs an API key; not run here |
-| [Preflight](docs/operations.md) | `just preflight <deployment>` compares your cloud login with a root | Tested with fake CLIs |
+| [Infracost](integrations/infracost/README.md) | `just cost <group> <stack>` prices a saved plan | Needs an API key; not run here |
+| [Preflight](docs/operations.md) | `just preflight <group> <stack>` compares your cloud login with a root | Tested with fake CLIs |
 
 ## Security and state
 
