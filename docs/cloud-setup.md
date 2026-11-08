@@ -186,7 +186,8 @@ The preflight compares the active CLI identity with the root's `terraform.tfvars
 It fails on any placeholder in `terraform.tfvars.json` or `backend.tf`. It does not
 compare your identity with the backend's `allowed_account_ids` or `subscription_id`,
 because state can live in a different account or subscription than the workload.
-The preflight prints account, subscription, and project IDs only. It never prints
+The preflight prints account, subscription, and project IDs, and the caller it
+matched: the AWS ARN, the Azure user name, or the gcloud account. It never prints
 credentials or tokens. See [operations](operations.md#check-your-identity-before-planning)
 for when to run it.
 

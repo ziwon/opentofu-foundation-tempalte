@@ -88,11 +88,14 @@ class PreflightTests(unittest.TestCase):
             self.assertIn(fragment, result.stderr)
 
     def test_matching_identity_passes(self):
+        callers = {AWS: "arn:aws:iam::111111111111:user/operator", AZURE: "operator@example.com",
+                   GCP: "operator@example.com"}
         for deployment, clis in ((AWS, aws()), (AZURE, az()), (GCP, gcloud())):
             with self.subTest(deployment):
                 result = self.preflight(deployment, clis)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertIn(deployment, result.stdout)
+                self.assertIn(callers[deployment], result.stdout)
 
     def test_wrong_identity_names_expected_and_actual_values(self):
         cases = {

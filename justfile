@@ -1,50 +1,87 @@
 set positional-arguments
+set dotenv-load
+
+# Root recipes take <group> <stack> after `just use` selects a context,
+# or <environment>/<cloud>/<group>/<stack> without one.
 
 default:
     @just --list
 
-init deployment:
-    tofu -chdir="live/$1" init
+[group('context')]
+use name="":
+    @python3 tools/context.py use "$1"
 
-preflight deployment:
-    python3 tools/preflight.py "$1"
+[group('context')]
+preflight +target:
+    @python3 tools/context.py root --check "$@" > /dev/null
 
-plan deployment:
-    tofu -chdir="live/$1" plan -out=plan.tfplan
+[group('opentofu')]
+init +target:
+    @root=$(python3 tools/context.py root --check "$@") && tofu -chdir="$root" init
 
-destroy-plan deployment:
-    tofu -chdir="live/$1" plan -destroy -out=plan.tfplan
+[group('opentofu')]
+validate +target:
+    @root=$(python3 tools/context.py root "$@") && tofu -chdir="$root" validate
 
-cost deployment:
-    umask 077 && mkdir -p ".infra/cost/$1" && tofu -chdir="live/$1" show -json plan.tfplan > ".infra/cost/$1/plan.json"
-    infracost breakdown --path ".infra/cost/$1/plan.json"
+[group('opentofu')]
+test +target:
+    @root=$(python3 tools/context.py root "$@") && tofu -chdir="$root" test
 
-apply deployment:
-    tofu -chdir="live/$1" apply plan.tfplan
+[group('opentofu')]
+plan +target:
+    @root=$(python3 tools/context.py root --check "$@") && tofu -chdir="$root" plan -out=plan.tfplan
 
-output deployment:
-    tofu -chdir="live/$1" output
+[group('opentofu')]
+destroy-plan +target:
+    @root=$(python3 tools/context.py root --check "$@") && tofu -chdir="$root" plan -destroy -out=plan.tfplan
 
-state-list deployment:
-    tofu -chdir="live/$1" state list
+[group('opentofu')]
+apply +target:
+    @root=$(python3 tools/context.py root --check "$@") && tofu -chdir="$root" apply plan.tfplan
 
-state-show deployment address:
-    tofu -chdir="live/$1" state show "$2"
+[group('opentofu')]
+output +target:
+    @root=$(python3 tools/context.py root --check "$@") && tofu -chdir="$root" output
 
-validate deployment:
-    tofu -chdir="live/$1" validate
+[group('opentofu')]
+lock +target:
+    @root=$(python3 tools/context.py root "$@") && tofu -chdir="$root" providers lock -platform=linux_amd64 -platform=darwin_arm64
 
-test deployment:
-    tofu -chdir="live/$1" test
+[group('opentofu')]
+cost +target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root=$(python3 tools/context.py root "$@")
+    report=".infra/cost/${root#live/}"
+    umask 077
+    mkdir -p "$report"
+    tofu -chdir="$root" show -json plan.tfplan > "$report/plan.json"
+    infracost breakdown --path "$report/plan.json"
 
-lock deployment:
-    tofu -chdir="live/$1" providers lock -platform=linux_amd64 -platform=darwin_arm64
+[group('state')]
+state-list +target:
+    @root=$(python3 tools/context.py root --check "$@") && tofu -chdir="$root" state list
 
+# The address comes last: `just state-show network core 'module.stack.aws_vpc.this'`.
+[group('state')]
+state-show +target_and_address:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if (( $# < 2 )) || { (( $# == 2 )) && [[ $1 != */* ]]; }; then
+        echo "usage: just state-show <group> <stack> <address>, or <environment>/<cloud>/<group>/<stack> <address>" >&2
+        exit 2
+    fi
+    root=$(python3 tools/context.py root --check "${@:1:$#-1}")
+    tofu -chdir="$root" state show "${@: -1}"
+
+[group('quality')]
 fmt:
     tofu fmt -recursive
 
+[group('quality')]
 check:
     python3 tools/check.py
 
+[group('quality')]
 secrets:
     gitleaks dir . --redact --no-banner
