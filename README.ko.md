@@ -3,6 +3,21 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/ziwon/terraform-foundation-tempalte/actions/workflows/check.yml"><img src="https://github.com/ziwon/terraform-foundation-tempalte/actions/workflows/check.yml/badge.svg?branch=main" alt="Checks workflow status"></a>
+  <a href="mise.toml"><img src="https://img.shields.io/badge/IaC-OpenTofu%201.12.5-FFDA18?style=flat-square&amp;logo=opentofu&amp;logoColor=15171A" alt="IaC: OpenTofu 1.12.5"></a>
+  <a href="docs/cloud-setup.md"><img src="https://img.shields.io/badge/clouds-AWS%20%C2%B7%20Azure%20%C2%B7%20GCP-15171A?style=flat-square" alt="Clouds: AWS, Azure, GCP"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-15171A?style=flat-square" alt="License: MIT"></a>
+  <br>
+  <a href="docs/quality.md"><img src="https://img.shields.io/badge/security-Trivy%200.76.1-15171A?style=flat-square" alt="Security scan: Trivy 0.76.1"></a>
+  <a href="docs/quality.md"><img src="https://img.shields.io/badge/lint-TFLint%200.65.0-15171A?style=flat-square" alt="Lint: TFLint 0.65.0"></a>
+  <a href=".github/workflows/check.yml"><img src="https://img.shields.io/badge/secrets-Gitleaks%208.30.1-15171A?style=flat-square" alt="Secret scan: Gitleaks 8.30.1"></a>
+  <br>
+  <a href="docs/atlantis.md"><img src="https://img.shields.io/badge/optional-Atlantis%200.49.0-5F646B?style=flat-square" alt="Optional: Atlantis 0.49.0"></a>
+  <a href="integrations/prowler/README.md"><img src="https://img.shields.io/badge/optional-Prowler%205.48.0-5F646B?style=flat-square" alt="Optional: Prowler 5.48.0"></a>
+  <a href="integrations/infracost/README.md"><img src="https://img.shields.io/badge/optional-Infracost%200.10.47-5F646B?style=flat-square" alt="Optional: Infracost 0.10.47"></a>
+</p>
+
+<p align="center">
   <a href="README.md">English</a> ·
   <a href="docs/architecture.md">구조</a> ·
   <a href="docs/cloud-setup.md">클라우드 설정</a> ·
