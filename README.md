@@ -33,27 +33,53 @@ plain `tofu`. Deployments need no Python, generator, or repository runner.
 
 ## Try it without a cloud account
 
-Install OpenTofu 1.12.5, or run `mise install` to get every pinned tool from
-[mise.toml](mise.toml). The local catalog uses only the built-in `terraform_data`
-resource, so it creates local state and no cloud resources.
+Run `mise install` to get OpenTofu 1.12.5, just, and the other tools pinned in
+[mise.toml](mise.toml). The recipes also need Python 3.10 or later. The local catalog
+uses only the built-in `terraform_data` resource, so it creates local state and no
+cloud resources.
+
+```sh
+cp .env.local.dev.example .env.local.dev
+just use local.dev
+just init foundation catalog
+just plan foundation catalog
+just apply foundation catalog
+just state-list foundation catalog
+```
+
+`just use` selects the local context, so each recipe takes `<group> <stack>`. Before
+it runs `tofu`, a recipe prints the stack, root, backend, and state it will use:
+
+```text
+Context
+  Env file    : .env.local.dev
+  Environment : dev
+  Cloud       : local
+  Credentials : none needed
+  OpenTofu    : OpenTofu v1.12.5
+  Stack       : stacks/local/foundation/catalog
+  Root        : live/dev/local/foundation/catalog
+  Backend     : local
+  State       : .infra/state/dev/local/foundation/catalog/terraform.tfstate
+  TF data dir : live/dev/local/foundation/catalog/.terraform
+  Identity    : local root, nothing to check
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+deployment_name = "starter-catalog-dev"
+module.stack.module.catalog.terraform_data.catalog
+```
+
+A saved plan applies without a prompt, so review it first. Remove the catalog with
+`just destroy-plan foundation catalog` and `just apply foundation catalog`.
+
+Each recipe runs one native command. Without just, run the same steps from the root:
 
 ```sh
 cd live/dev/local/foundation/catalog
 tofu init -lockfile=readonly
 tofu plan -out=plan.tfplan
 tofu apply plan.tfplan
-tofu state list
 ```
-
-```text
-Plan: 1 to add, 0 to change, 0 to destroy.
-deployment_name = "starter-catalog-dev"
-module.stack.module.catalog.terraform_data.catalog
-```
-
-State lands in `.infra/state/dev/local/foundation/catalog/terraform.tfstate`. A saved
-plan applies without a prompt, so review it first. Remove the catalog with
-`tofu plan -destroy -out=destroy.tfplan` and `tofu apply destroy.tfplan`.
 
 ## What you get
 
@@ -101,21 +127,8 @@ state key that matches its address. See [architecture](docs/architecture.md),
 3. Create state storage with [bootstrap](docs/bootstrap.md), or use storage you already manage.
 4. Replace the storage placeholders in `backend.tf`. Keep its explicit key or prefix.
 5. Log in through your cloud's identity mechanism. See [cloud setup](docs/cloud-setup.md).
-6. Optionally run `just preflight dev/aws/network/core`. It checks that your login
-   matches the root and changes nothing.
+6. Copy the context example for the cloud, set its CLI credentials, and select it.
 7. Review a saved plan, then apply it through your approved process.
-
-```sh
-tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
-tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
-tofu -chdir=live/dev/aws/network/core apply plan.tfplan
-```
-
-### Or use just with a context
-
-A context file picks the environment, the cloud, and the CLI credentials, such as
-`AWS_PROFILE`. Root recipes then take `<group> <stack>`, print what they will touch,
-and check your login before they run `tofu`:
 
 ```sh
 cp .env.aws.dev.example .env.aws.dev   # set AWS_PROFILE
@@ -124,6 +137,9 @@ just init network core
 just plan network core
 just apply network core
 ```
+
+Recipes that use credentials also check your login against the root before `tofu`
+runs. They stop on a wrong account, region, subscription, or project:
 
 ```text
 Context
@@ -140,9 +156,18 @@ Context
   Identity    : matches AWS account 111111111111, AWS region us-east-1 as arn:aws:iam::111111111111:user/operator
 ```
 
-The account, region, and state bucket still come from the root's files, not the
-context. Recipes also accept the full `dev/aws/network/core` path. Run `just --list`
-for every recipe, and see [operations](docs/operations.md#select-a-context).
+The account, region, and state bucket come from the root's files, not the context.
+Recipes also accept the full `dev/aws/network/core` path. Run `just --list` for every
+recipe, and see [operations](docs/operations.md#select-a-context).
+
+### Without just
+
+```sh
+python3 tools/preflight.py dev/aws/network/core   # optional login check
+tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
+tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
+tofu -chdir=live/dev/aws/network/core apply plan.tfplan
+```
 
 ## Checks
 

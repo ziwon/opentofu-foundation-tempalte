@@ -33,27 +33,52 @@ AWS, Azure, GCP를 위한 OpenTofu 모노레포 템플릿입니다. 배포 하�
 
 ## 클라우드 계정 없이 실행해 보기
 
-OpenTofu 1.12.5를 설치하거나, `mise install`로 [mise.toml](mise.toml)에 고정된 도구를
-모두 설치합니다. 로컬 catalog는 내장 `terraform_data` 리소스만 사용하므로 로컬 상태만
-만들고 클라우드 리소스는 만들지 않습니다.
+`mise install`로 OpenTofu 1.12.5, just, 그리고 [mise.toml](mise.toml)에 고정된 다른
+도구를 설치합니다. 레시피에는 Python 3.10 이상도 필요합니다. 로컬 catalog는 내장
+`terraform_data` 리소스만 사용하므로 로컬 상태만 만들고 클라우드 리소스는 만들지 않습니다.
+
+```sh
+cp .env.local.dev.example .env.local.dev
+just use local.dev
+just init foundation catalog
+just plan foundation catalog
+just apply foundation catalog
+just state-list foundation catalog
+```
+
+`just use`로 로컬 컨텍스트를 고르면 각 레시피는 `<group> <stack>`만 받습니다. 레시피는
+`tofu`를 실행하기 전에 사용할 stack, 루트, backend, 상태를 출력합니다.
+
+```text
+Context
+  Env file    : .env.local.dev
+  Environment : dev
+  Cloud       : local
+  Credentials : none needed
+  OpenTofu    : OpenTofu v1.12.5
+  Stack       : stacks/local/foundation/catalog
+  Root        : live/dev/local/foundation/catalog
+  Backend     : local
+  State       : .infra/state/dev/local/foundation/catalog/terraform.tfstate
+  TF data dir : live/dev/local/foundation/catalog/.terraform
+  Identity    : local root, nothing to check
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+deployment_name = "starter-catalog-dev"
+module.stack.module.catalog.terraform_data.catalog
+```
+
+저장된 plan은 확인 질문 없이 적용되므로 먼저 검토하세요. catalog를 지우려면
+`just destroy-plan foundation catalog`와 `just apply foundation catalog`를 실행합니다.
+
+각 레시피는 기본 명령 하나를 실행합니다. just 없이 루트에서 같은 단계를 실행할 수 있습니다.
 
 ```sh
 cd live/dev/local/foundation/catalog
 tofu init -lockfile=readonly
 tofu plan -out=plan.tfplan
 tofu apply plan.tfplan
-tofu state list
 ```
-
-```text
-Plan: 1 to add, 0 to change, 0 to destroy.
-deployment_name = "starter-catalog-dev"
-module.stack.module.catalog.terraform_data.catalog
-```
-
-상태는 `.infra/state/dev/local/foundation/catalog/terraform.tfstate`에 저장됩니다. 저장된
-plan은 확인 질문 없이 적용되므로 먼저 검토하세요. catalog를 지우려면
-`tofu plan -destroy -out=destroy.tfplan`과 `tofu apply destroy.tfplan`을 실행합니다.
 
 ## 포함된 것
 
@@ -100,21 +125,8 @@ Stack과 모듈에는 provider나 backend 설정이 없습니다. 각 루트는 
 3. [bootstrap](docs/bootstrap.md)으로 상태 저장소를 만들거나, 이미 관리 중인 저장소를 씁니다.
 4. `backend.tf`의 저장소 자리표시자를 바꿉니다. 명시된 key나 prefix는 유지합니다.
 5. 클라우드의 ID 방식으로 로그인합니다. [클라우드 설정](docs/cloud-setup.md)을 참고하세요.
-6. 원한다면 `just preflight dev/aws/network/core`를 실행합니다. 로그인한 ID가 루트와
-   맞는지 확인하며, 아무것도 바꾸지 않습니다.
+6. 클라우드에 맞는 컨텍스트 예시를 복사하고, CLI 자격 증명을 설정한 뒤 선택합니다.
 7. 저장된 plan을 검토한 뒤 승인된 절차로 적용합니다.
-
-```sh
-tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
-tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
-tofu -chdir=live/dev/aws/network/core apply plan.tfplan
-```
-
-### 또는 컨텍스트와 함께 just 쓰기
-
-컨텍스트 파일은 환경, 클라우드, 그리고 `AWS_PROFILE` 같은 CLI 자격 증명을 고릅니다.
-그러면 루트 레시피는 `<group> <stack>`만 받고, 무엇을 건드릴지 출력하고, 로그인을
-확인한 뒤 `tofu`를 실행합니다.
 
 ```sh
 cp .env.aws.dev.example .env.aws.dev   # AWS_PROFILE을 설정합니다
@@ -123,6 +135,9 @@ just init network core
 just plan network core
 just apply network core
 ```
+
+자격 증명을 쓰는 레시피는 `tofu`를 실행하기 전에 로그인한 ID가 루트와 맞는지도
+확인합니다. 계정, 리전, 구독, 프로젝트가 다르면 멈춥니다.
 
 ```text
 Context
@@ -139,9 +154,18 @@ Context
   Identity    : matches AWS account 111111111111, AWS region us-east-1 as arn:aws:iam::111111111111:user/operator
 ```
 
-계정, 리전, 상태 버킷은 여전히 컨텍스트가 아니라 루트의 파일에서 옵니다. 레시피는
+계정, 리전, 상태 버킷은 컨텍스트가 아니라 루트의 파일에서 옵니다. 레시피는
 `dev/aws/network/core` 같은 전체 경로도 받습니다. 전체 레시피는 `just --list`로 볼 수
 있고, 자세한 내용은 [운영](docs/operations.md#select-a-context)을 참고하세요.
+
+### just 없이 실행하기
+
+```sh
+python3 tools/preflight.py dev/aws/network/core   # 선택: 로그인 확인
+tofu -chdir=live/dev/aws/network/core init -lockfile=readonly
+tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
+tofu -chdir=live/dev/aws/network/core apply plan.tfplan
+```
 
 ## 검사
 
