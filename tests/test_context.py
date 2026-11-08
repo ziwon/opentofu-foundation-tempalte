@@ -12,7 +12,8 @@ import unittest
 from test_preflight import CONFIGURED, FAKE_CLI, aws
 
 ROOT = Path(__file__).resolve().parents[1]
-DEPLOYMENTS = ("dev/aws/network/core", "prod/aws/network/core", "dev/local/foundation/catalog")
+DEPLOYMENTS = ("dev/aws/network/core", "prod/aws/network/core", "dev/gcp/network/core",
+               "dev/local/foundation/catalog")
 AWS_DEV = "DEPLOY_ENV=dev\nDEPLOY_CLOUD=aws\nAWS_PROFILE=sandbox\nAWS_REGION=us-east-1\n"
 LOCAL_DEV = "DEPLOY_ENV=dev\nDEPLOY_CLOUD=local\n"
 
@@ -61,6 +62,10 @@ class ContextTests(unittest.TestCase):
         for fragment in fragments:
             self.assertIn(fragment, result.stderr)
 
+    def rows(self, result):
+        pairs = (line.split(" : ", 1) for line in result.stderr.splitlines() if " : " in line)
+        return {label.strip(): value.strip() for label, value in pairs}
+
     def selected(self):
         link = self.repository / ".env"
         return os.readlink(link) if link.is_symlink() else None
@@ -89,6 +94,25 @@ class ContextTests(unittest.TestCase):
         self.assertFails(self.run_tool("use", "aws.dev"), ".env")
         self.assertEqual((self.repository / ".env").read_text(), "AWS_PROFILE=mine\n")
 
+    def test_use_rejects_an_unedited_example(self):
+        shutil.copy(self.repository / ".env.aws.dev.example", self.repository / ".env.aws.dev")
+        self.assertFails(self.run_tool("use", "aws.dev"), "placeholder", "AWS_PROFILE")
+        self.assertIsNone(self.selected())
+
+    def test_use_rejects_values_just_would_read_differently(self):
+        for value in ("sandbox # mine", "$HOME/.aws", 'sand\\"box'):
+            with self.subTest(value):
+                self.context("aws.dev", AWS_DEV.replace("AWS_PROFILE=sandbox", f"AWS_PROFILE={value}"))
+                self.assertFails(self.run_tool("use", "aws.dev"), "AWS_PROFILE", "plain value")
+                self.assertIsNone(self.selected())
+
+    def test_use_without_an_answer_selects_nothing(self):
+        self.context("aws.dev", AWS_DEV)
+        result = self.run_tool("use", stdin="")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("no context selected", result.stderr)
+        self.assertIsNone(self.selected())
+
     def test_use_rejects_a_context_that_names_no_deployments(self):
         for text, fragment in (("DEPLOY_ENV=dev\n", "DEPLOY_CLOUD"), ("DEPLOY_ENV=qa\nDEPLOY_CLOUD=aws\n", "live/qa/aws")):
             with self.subTest(fragment):
@@ -110,11 +134,31 @@ class ContextTests(unittest.TestCase):
     def test_short_target_needs_a_context(self):
         self.assertFails(self.run_tool("root", "network", "core"), "just use")
 
+    def test_a_deleted_context_stops_every_target(self):
+        (self.repository / ".env").symlink_to(".env.gone")
+        for target in (("network", "core"), ("dev/local/foundation/catalog",)):
+            with self.subTest(target):
+                self.assertFails(self.run_tool("root", *target), ".env.gone", "just use")
+
+    def test_a_hand_written_env_file_is_not_a_context(self):
+        (self.repository / ".env").write_text("AWS_PROFILE=mine\n")
+        result = self.run_tool("root", "dev/local/foundation/catalog")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("not a context", self.rows(result)["Env file"])
+        self.assertFails(self.run_tool("root", "network", "core"), "just use")
+
+    def test_an_env_file_above_the_repository_stops_every_target(self):
+        (self.temporary / ".env").write_text("AWS_PROFILE=elsewhere\n")
+        self.assertFails(self.run_tool("root", "dev/local/foundation/catalog"), str(self.temporary / ".env"))
+
     def test_full_target_works_without_a_context_but_must_match_a_selected_one(self):
         result = self.run_tool("root", "dev/local/foundation/catalog")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "live/dev/local/foundation/catalog\n")
-        self.assertIn(".infra/state/dev/local/foundation/catalog/terraform.tfstate", result.stderr)
+        self.assertEqual(self.rows(result)["State"], ".infra/state/dev/local/foundation/catalog/terraform.tfstate")
+        self.assertEqual(self.rows(result)["Env file"], "none")
+        result = self.run_tool("root", "dev/gcp/network/core")
+        self.assertEqual(self.rows(result)["State"], "dev/gcp/network/core/default.tfstate")
         self.context("aws.dev", AWS_DEV)
         self.run_tool("use", "aws.dev")
         self.assertFails(self.run_tool("root", "prod/aws/network/core", AWS_PROFILE="sandbox",

@@ -31,14 +31,19 @@ stops when any of these is true:
 
 - The context file still has a `REPLACE_ME` value, or names an environment and cloud
   with no roots.
+- A value uses `$`, `\`, or a trailing `# comment`. `just` would expand or strip these,
+  so write plain values, such as an absolute path.
+- The selected `.env.<name>` file was deleted, or the repository has no `.env` but a
+  parent directory does. `just` searches parent directories for `.env`.
 - A full target such as `prod/aws/network/core` is outside the selected context.
 - Your shell already sets a credential variable to a value other than the context's,
   for example from an earlier `direnv` load. `just` does not override shell variables.
 
 `init`, `plan`, `destroy-plan`, `apply`, `output`, and the state recipes also run the
 preflight below. `validate`, `test`, `lock`, and `cost` need no cloud login and skip it.
-Every recipe still accepts the full `<environment>/<cloud>/<group>/<stack>` path, with
-or without a context.
+Every root recipe also accepts the full `<environment>/<cloud>/<group>/<stack>` path.
+Without a context, any root works. With one, the path must be inside it. A `.env`
+that you wrote by hand is loaded by `just` but is not a context, so only full paths work.
 
 ## Check your identity before planning
 
@@ -49,7 +54,8 @@ account, subscription, or project that the root expects:
 just preflight dev/aws/network/core
 ```
 
-`just preflight` runs `python3 tools/preflight.py dev/aws/network/core`. The tool
+`just preflight` prints the context summary and runs the same check as
+`python3 tools/preflight.py dev/aws/network/core`. The check
 reads the root's `terraform.tfvars.json` and `backend.tf`, then asks the installed
 `aws`, `az`, or `gcloud` CLI for the active identity. It prints one line for each
 mismatch, with the active value and the value the root expects, and exits with code 1.

@@ -31,17 +31,22 @@ First release of the template.
   server-owned approval requirements. `.github/CODEOWNERS` assigns that policy to a
   reviewing team.
 - OpenTofu-only CI, Dependabot updates for root provider locks, pinned tools in
-  `mise.toml`, and optional `just` aliases for native commands.
+  `mise.toml`, and optional `just` recipes for native commands.
 - The check tools use `TF_PLUGIN_CACHE_DIR` and `TFLINT_PLUGIN_DIR` when they are set,
   so provider and plugin caches can live outside the checkout.
-- An optional `just cost <deployment>` recipe prices a saved plan with Infracost.
+- An optional `just cost <group> <stack>` recipe prices a saved plan with Infracost.
   `integrations/infracost/mise.toml` pins the CLI, and no check or CI job uses it.
 - English and Korean getting-started guides, plus architecture, cloud setup,
   bootstrap, operations, quality, Atlantis, security, and contribution guides.
-- `just preflight <deployment>` runs `tools/preflight.py`, a read-only check that the
-  active `aws`, `az`, or `gcloud` identity matches the root's account, subscription,
-  project, and AWS region. It fails on committed placeholders, a missing CLI, or a
-  missing login. The `plan` and `apply` recipes do not run it.
+- `just preflight <group> <stack>` runs `tools/preflight.py`, a read-only check that
+  the active `aws`, `az`, or `gcloud` identity matches the root's account,
+  subscription, project, and AWS region, and reports the caller it matched. It fails
+  on committed placeholders, a missing CLI, or a missing login.
+- `just use` selects a `.env.<name>` context that sets the environment, cloud, and
+  cloud CLI variables. Root recipes then take `<group> <stack>` or the full path.
+  Before `tofu` runs, `tools/context.py` prints the stack, root, backend, state key,
+  and data directory. The recipes that use credentials run the preflight first.
+  Contexts hold no account IDs or state buckets, which stay in each root.
 - `modules/aws/github-actions-oidc` creates or looks up the account's GitHub Actions
   OIDC provider and IAM roles that trust exact `sub` claims and the
   `sts.amazonaws.com` audience with `StringEquals`. Prefix patterns are an explicit

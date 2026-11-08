@@ -18,6 +18,8 @@ from preflight import preflight
 ROOT = Path(__file__).resolve().parents[1]
 KEYS = ("DEPLOY_ENV", "DEPLOY_CLOUD")
 NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
+# just expands variables, escapes, and inline comments; this reader does not, so it refuses them.
+NOT_PLAIN = re.compile(r"[$\\]|\s#")
 CREDENTIALS = {"aws": ("AWS_PROFILE", "AWS_REGION"), "azure": ("AZURE_CONFIG_DIR",),
                "gcp": ("CLOUDSDK_ACTIVE_CONFIG_NAME",), "local": ()}
 STATE = {"local": "path", "s3": "key", "azurerm": "key", "gcs": "prefix"}
@@ -38,6 +40,9 @@ def read(path):
         line = line.strip()
         if line and not line.startswith("#"):
             key, _, value = line.removeprefix("export ").partition("=")
+            if NOT_PLAIN.search(value):
+                raise ContextError(f"{path.name}: write {key.strip()} as a plain value, "
+                                   "without $, \\, or a trailing comment")
             values[key.strip()] = value.strip().strip("'\"")
     if missing := [key for key in KEYS if not values.get(key)]:
         raise ContextError(f"{path.name} does not set {', '.join(missing)}")
@@ -87,11 +92,17 @@ def use(name):
 
 def selected():
     link = ROOT / ".env"
-    if link.is_symlink() and not link.exists():
-        raise ContextError(f"the selected context {os.readlink(link)} no longer exists. Run `just use`")
-    if not link.exists():
-        return None, None
-    return (os.readlink(link) if link.is_symlink() else ".env"), read(link)
+    if link.is_symlink():
+        target = ROOT / os.readlink(link)
+        if not target.is_file():
+            raise ContextError(f"the selected context {os.readlink(link)} no longer exists. Run `just use`")
+        return target.name, read(target)
+    if link.exists():
+        return ".env (not a context)", None
+    if inherited := next((parent / ".env" for parent in ROOT.parents if (parent / ".env").exists()), None):
+        raise ContextError(f"this repository has no .env, so just loads {inherited} instead. "
+                           "Run `just use`, or move that file")
+    return None, None
 
 
 def resolve(target, context):

@@ -110,7 +110,7 @@ tofu -chdir=live/dev/aws/network/core plan -out=plan.tfplan
 tofu -chdir=live/dev/aws/network/core apply plan.tfplan
 ```
 
-### 컨텍스트와 함께 just 쓰기
+### 또는 컨텍스트와 함께 just 쓰기
 
 컨텍스트 파일은 환경, 클라우드, 그리고 `AWS_PROFILE` 같은 CLI 자격 증명을 고릅니다.
 그러면 루트 레시피는 `<group> <stack>`만 받고, 무엇을 건드릴지 출력하고, 로그인을

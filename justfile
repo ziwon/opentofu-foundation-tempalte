@@ -67,6 +67,10 @@ state-list +target:
 state-show +target_and_address:
     #!/usr/bin/env bash
     set -euo pipefail
+    if (( $# < 2 )) || { (( $# == 2 )) && [[ $1 != */* ]]; }; then
+        echo "usage: just state-show <group> <stack> <address>, or <environment>/<cloud>/<group>/<stack> <address>" >&2
+        exit 2
+    fi
     root=$(python3 tools/context.py root --check "${@:1:$#-1}")
     tofu -chdir="$root" state show "${@: -1}"
 
